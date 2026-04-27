@@ -379,25 +379,24 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1)
 
       <!-- ═══ RECONCILIATION ═══ -->
       <div id="page-reconciliation" class="content" style="display:none">
-        <div class="card" style="margin-bottom:14px;border-left:3px solid var(--gold)">
-          <div style="font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:14px">
-            <strong style="color:var(--t1)">Formula:</strong> Baseline Stock + Inbound − Outbound = Expected Today<br>
-            Select a baseline snapshot and movement window to verify a period.
-          </div>
-          <div class="three-col">
-            <div class="fg" style="margin:0"><div class="fl">Baseline Snapshot</div><select class="fs" id="recon-base" onchange="window.renderRecon()"></select></div>
-            <div class="fg" style="margin:0"><div class="fl">From</div><input type="date" class="fi" id="recon-from" onchange="window.renderRecon()"/></div>
-            <div class="fg" style="margin:0"><div class="fl">To</div><input type="date" class="fi" id="recon-to" onchange="window.renderRecon()"/></div>
-          </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--t2)">Warehouse:</div>
+          <select class="fs" id="recon-wh" onchange="window.renderRecon()" style="width:auto">
+            <option value="all">All Warehouses</option>
+            <option value="DSV Funabashi">DSV Funabashi</option>
+            <option value="Sagawa (Hyutech Noorin)">Sagawa (Hyutech Noorin)</option>
+            <option value="Silver Family Warehouse">Silver Family Warehouse</option>
+          </select>
+          <div id="recon-meta" style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:auto"></div>
         </div>
         <div id="recon-summary" style="margin-bottom:12px"></div>
         <div class="tbl-wrap">
           <div class="recon-grid">
             <div class="recon-hd">Product</div><div class="recon-hd">Warehouse</div>
-            <div class="recon-hd right" style="text-align:right">Baseline</div>
+            <div class="recon-hd right" style="text-align:right">Snapshot</div>
             <div class="recon-hd right" style="text-align:right">+In</div>
             <div class="recon-hd right" style="text-align:right">−Out</div>
-            <div class="recon-hd right" style="text-align:right">Expected</div>
+            <div class="recon-hd right" style="text-align:right">Today</div>
             <div class="recon-hd">Status</div>
           </div>
           <div id="recon-rows"></div>
@@ -558,7 +557,7 @@ window.nav=function(name){
   document.getElementById('page-sub').textContent=m.sub;
   if(name==='stock')_renderStock();
   if(name==='movements'){_populateSkuSelect();_renderMovements()}
-  if(name==='reconciliation'){_populateReconBase();window.renderRecon()}
+  if(name==='reconciliation')window.renderRecon();
   if(name==='context')_renderContext('');
   if(name==='costs')_renderCosts();
   if(name==='alerts')_renderAlerts();
@@ -1017,58 +1016,83 @@ function _renderMovements(){
 }
 
 // ═══ RECONCILIATION ══════════════════════════════════════
-function _populateReconBase(){
-  const snaps=DB.snapshots();
-  const sel=document.getElementById('recon-base');
-  if(!sel)return;
-  const cur=sel.value;
-  sel.innerHTML=snaps.map((s,i)=>`<option value="${i}">${s.file} (${new Date(s.date).toLocaleDateString('en-GB',{dateStyle:'short'})})</option>`).join('');
-  if(cur)sel.value=cur;
-}
 window.renderRecon=function(){
   const snaps=DB.snapshots();
   const el=document.getElementById('recon-rows');
-  if(!snaps.length){el.innerHTML='<div style="padding:32px;text-align:center;color:var(--t3)">Process an inventory report first.</div>';return}
-  _populateReconBase();
-  const bi=parseInt(document.getElementById('recon-base')?.value||'0');
-  const base=snaps[bi]||snaps[0];
-  const cutoff=_snapCutoff(base);
-  const fromV=document.getElementById('recon-from')?.value;
-  const toV=document.getElementById('recon-to')?.value;
-  const fromD=fromV?new Date(fromV):cutoff;
-  const toD=toV?new Date(toV+'T23:59:59'):new Date();
+  if(!snaps.length){
+    el.innerHTML='<div style="padding:32px;text-align:center;color:var(--t3)">Process an inventory report first.</div>';
+    return;
+  }
+
+  // Always use latest snapshot — no manual selection needed
+  const latest=snaps[0];
+  const cutoff=_snapCutoff(latest);
+  const whFilter=document.getElementById('recon-wh')?.value||'all';
+
+  // Show snapshot info
+  const meta=document.getElementById('recon-meta');
+  if(meta)meta.textContent=`Snapshot: ${latest.file} · ${new Date(latest.date).toLocaleDateString('en-GB',{dateStyle:'medium'})}`;
+
+  // Build per-SKU data from latest snapshot
   const bysku={};
-  base.items.forEach(item=>{
-    if(!bysku[item.sku])bysku[item.sku]={name:item.name,reported:0,in:0,out:0};
-    if(!item.broken)bysku[item.sku].reported+=item.current_stock;
+  latest.items.forEach(item=>{
+    if(!bysku[item.sku])bysku[item.sku]={
+      name:item.name,
+      warehouse:item.warehouse||latest.warehouse||'DSV Funabashi',
+      snapshot:0,in:0,out:0,broken:0
+    };
+    item.broken
+      ? bysku[item.sku].broken+=item.current_stock
+      : bysku[item.sku].snapshot+=item.current_stock;
   });
+
+  // Apply all movements since snapshot
   let movCount=0;
   DB.movements().forEach(m=>{
     const d=new Date(m.date);
-    if(d<=fromD||d>toD||!bysku[m.sku])return;
+    if(d<=cutoff)return; // before snapshot — skip
+    if(!bysku[m.sku])return; // unknown SKU — skip
     movCount++;
     m.type==='in'?bysku[m.sku].in+=m.qty:bysku[m.sku].out+=m.qty;
   });
-  const negCount=Object.values(bysku).filter(d=>d.reported+d.in-d.out<0).length;
-  const wh=base.warehouse||'DSV Funabashi';
-  const whColor=wh.includes('Sagawa')?'var(--blue)':wh.includes('Silver')?'var(--purple)':'var(--gold)';
-  document.getElementById('recon-summary').innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-    <span style="font-size:10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;color:var(--t2)">Baseline: ${base.file}</span>
-    <span style="font-size:10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;color:var(--t2)">${fromV||'start'} → ${toV||'today'}</span>
-    <span style="font-size:10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;color:var(--blue)">${movCount} movements</span>
-    ${negCount>0?`<span style="font-size:10px;background:var(--red-dim);border:1px solid rgba(184,85,85,.2);border-radius:var(--rs);padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;color:var(--red)">⚠ ${negCount} negative</span>`:`<span style="font-size:10px;background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;color:var(--green)">✓ All positive</span>`}
+
+  // Filter by warehouse if selected
+  let rows=Object.entries(bysku);
+  if(whFilter!=='all')rows=rows.filter(([,d])=>d.warehouse===whFilter);
+
+  const negCount=rows.filter(([,d])=>d.snapshot+d.in-d.out<0).length;
+
+  // Summary pills
+  document.getElementById('recon-summary').innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <span style="font-size:10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--t2)">${movCount} movements since snapshot</span>
+    ${negCount>0
+      ?`<span style="font-size:10px;background:var(--red-dim);border:1px solid rgba(184,85,85,.2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--red)">⚠ ${negCount} SKU${negCount!==1?'s':''} negative — check inbound</span>`
+      :`<span style="font-size:10px;background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--green)">✓ All positive</span>`}
   </div>`;
-  el.innerHTML=Object.entries(bysku).map(([sku,d])=>{
-    const exp=d.reported+d.in-d.out;
-    const neg=exp<0;
+
+  if(!rows.length){
+    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--t3)">No data for selected warehouse.</div>';
+    return;
+  }
+
+  el.innerHTML=rows.map(([sku,d])=>{
+    const today=d.snapshot+d.in-d.out;
+    const neg=today<0;
+    const whColor=d.warehouse.includes('Sagawa')?'var(--blue)':d.warehouse.includes('Silver')?'var(--purple)':'var(--gold)';
     return `<div class="recon-grid" style="border-bottom:1px solid var(--b1)${neg?';background:rgba(184,85,85,0.03)':''}">
-      <div class="recon-cell"><div><div style="font-weight:500">${d.name}</div><div style="font-size:10px;color:var(--gold);font-family:\'IBM Plex Mono\',monospace">${sku}</div></div></div>
-      <div class="recon-cell" style="font-size:10px;color:${whColor}">${wh}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end">${d.reported}</div>
+      <div class="recon-cell"><div>
+        <div style="font-weight:500">${d.name}</div>
+        <div style="font-size:10px;color:var(--gold);font-family:'IBM Plex Mono',monospace">${sku}</div>
+      </div></div>
+      <div class="recon-cell" style="font-size:10px;color:${whColor}">${d.warehouse}</div>
+      <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--t2)">${d.snapshot}</div>
       <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--green)">${d.in>0?'+'+d.in:'—'}</div>
       <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--red)">${d.out>0?'−'+d.out:'—'}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end;font-weight:700;color:${neg?'var(--red)':exp<=5?'var(--orange)':'var(--t1)'}">${exp}</div>
-      <div class="recon-cell">${d.in===0&&d.out===0?'<span class="badge b-gray">No movs</span>':neg?'<span class="badge b-red">Check</span>':'<span class="badge b-green">Tracked</span>'}</div>
+      <div class="recon-cell mono right" style="justify-content:flex-end;font-weight:700;font-size:14px;color:${neg?'var(--red)':today<=5?'var(--orange)':'var(--t1)'}">${today}</div>
+      <div class="recon-cell">${d.in===0&&d.out===0
+        ?'<span class="badge b-gray">No movs</span>'
+        :neg?'<span class="badge b-red">⚠ Check</span>'
+        :'<span class="badge b-green">✓</span>'}</div>
     </div>`;
   }).join('');
 };
