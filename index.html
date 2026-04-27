@@ -394,10 +394,13 @@ body{
     </div>
     
     <div id="wa-zip-area">
-      <div class="upload-inline" id="wa-drop" onclick="document.getElementById('wa-file-in').click()">
+      <div class="upload-inline" id="wa-drop" style="cursor:pointer">
         <div class="upload-inline-text">Drop WhatsApp export <span>.zip</span> here or click to browse</div>
         <div id="wa-filename" style="margin-top:6px;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace"></div>
-        <input type="file" id="wa-file-in" accept=".zip,.txt" style="display:none" />
+      </div>
+      <input type="file" id="wa-file-in" accept=".zip,.txt" style="display:none" />
+      <div id="wa-process-row" style="display:none;margin-top:10px">
+        <button class="upload-btn" onclick="window.startWaProcess()">⚡ Extract Movements</button>
       </div>
     </div>
     
@@ -999,16 +1002,28 @@ window.waTab = function(tab){
 // File input handlers
 const waFile = document.getElementById('wa-file-in');
 const waDrop = document.getElementById('wa-drop');
-waFile.addEventListener('change', e => _processWaFile(e.target.files[0]));
+let _waSelectedFile = null;
+
+waDrop.addEventListener('click', ()=>waFile.click());
 waDrop.addEventListener('dragover', e=>{e.preventDefault();waDrop.classList.add('drag')});
 waDrop.addEventListener('dragleave', ()=>waDrop.classList.remove('drag'));
-waDrop.addEventListener('drop', e=>{e.preventDefault();waDrop.classList.remove('drag');_processWaFile(e.dataTransfer.files[0])});
-waDrop.addEventListener('click', ()=>waFile.click());
-
-// Also handle paste button
-document.getElementById('wa-paste-text').addEventListener('input', function(){
-  if(this.value.trim().length > 50) _processWaText(this.value);
+waDrop.addEventListener('drop', e=>{
+  e.preventDefault();waDrop.classList.remove('drag');
+  _waSelectedFile = e.dataTransfer.files[0];
+  document.getElementById('wa-filename').textContent = _waSelectedFile.name;
+  document.getElementById('wa-process-row').style.display='block';
 });
+waFile.addEventListener('change', e=>{
+  _waSelectedFile = e.target.files[0];
+  if(_waSelectedFile){
+    document.getElementById('wa-filename').textContent = _waSelectedFile.name;
+    document.getElementById('wa-process-row').style.display='block';
+  }
+});
+
+window.startWaProcess = async function(){
+  if(_waSelectedFile) await _processWaFile(_waSelectedFile);
+};
 
 async function _processWaFile(file){
   if(!file) return;
