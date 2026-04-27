@@ -406,6 +406,9 @@ body{
     
     <div id="wa-paste-area" style="display:none">
       <textarea id="wa-paste-text" style="width:100%;background:#fff;border:1px solid var(--paper);border-radius:var(--rs);padding:12px;font-family:'DM Mono',monospace;font-size:11px;min-height:140px;outline:none;resize:vertical;color:var(--ink)" placeholder="Paste WhatsApp messages here..."></textarea>
+      <div style="margin-top:10px">
+        <button class="upload-btn" onclick="window.startWaPaste()">⚡ Extract Movements</button>
+      </div>
     </div>
     
     <div class="loader" id="wa-loader" style="margin-top:12px"><div class="spin"></div><span id="wa-loader-txt">Claude is extracting movements...</span></div>
@@ -1000,29 +1003,49 @@ window.waTab = function(tab){
 };
 
 // File input handlers
-const waFile = document.getElementById('wa-file-in');
-const waDrop = document.getElementById('wa-drop');
 let _waSelectedFile = null;
 
-waDrop.addEventListener('click', ()=>waFile.click());
-waDrop.addEventListener('dragover', e=>{e.preventDefault();waDrop.classList.add('drag')});
-waDrop.addEventListener('dragleave', ()=>waDrop.classList.remove('drag'));
-waDrop.addEventListener('drop', e=>{
-  e.preventDefault();waDrop.classList.remove('drag');
-  _waSelectedFile = e.dataTransfer.files[0];
-  document.getElementById('wa-filename').textContent = _waSelectedFile.name;
-  document.getElementById('wa-process-row').style.display='block';
-});
-waFile.addEventListener('change', e=>{
-  _waSelectedFile = e.target.files[0];
-  if(_waSelectedFile){
-    document.getElementById('wa-filename').textContent = _waSelectedFile.name;
-    document.getElementById('wa-process-row').style.display='block';
-  }
+document.addEventListener('DOMContentLoaded', function(){
+  const waFileEl = document.getElementById('wa-file-in');
+  const waDropEl = document.getElementById('wa-drop');
+  if(!waFileEl||!waDropEl) return;
+
+  waDropEl.addEventListener('click', ()=>waFileEl.click());
+  waDropEl.addEventListener('dragover', e=>{e.preventDefault();waDropEl.classList.add('drag')});
+  waDropEl.addEventListener('dragleave', ()=>waDropEl.classList.remove('drag'));
+  waDropEl.addEventListener('drop', e=>{
+    e.preventDefault();waDropEl.classList.remove('drag');
+    if(e.dataTransfer.files[0]){
+      _waSelectedFile = e.dataTransfer.files[0];
+      document.getElementById('wa-filename').textContent = _waSelectedFile.name;
+      document.getElementById('wa-process-row').style.display='block';
+    }
+  });
+  waFileEl.addEventListener('change', e=>{
+    if(e.target.files[0]){
+      _waSelectedFile = e.target.files[0];
+      document.getElementById('wa-filename').textContent = _waSelectedFile.name;
+      document.getElementById('wa-process-row').style.display='block';
+    }
+  });
 });
 
 window.startWaProcess = async function(){
-  if(_waSelectedFile) await _processWaFile(_waSelectedFile);
+  const btn = event.target;
+  btn.disabled=true; btn.textContent='Processing...';
+  try{
+    if(!_waSelectedFile){ alert('No file selected.'); return; }
+    await _processWaFile(_waSelectedFile);
+  }finally{ btn.disabled=false; btn.textContent='⚡ Extract Movements'; }
+};
+
+window.startWaPaste = async function(){
+  const text = document.getElementById('wa-paste-text').value.trim();
+  if(!text){ alert('Please paste some WhatsApp messages first.'); return; }
+  const btn = event.target;
+  btn.disabled=true; btn.textContent='Processing...';
+  try{ await _processWaText(text); }
+  finally{ btn.disabled=false; btn.textContent='⚡ Extract Movements'; }
 };
 
 async function _processWaFile(file){
