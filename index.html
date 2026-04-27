@@ -338,6 +338,7 @@ body{
       <div class="hdr-sub" id="hdr-sub">Loading...</div>
     </div>
     <div class="hdr-right">
+      <button class="upload-btn secondary" onclick="window.showInboundModal()">📦 Log Inbound</button>
       <button class="upload-btn secondary" onclick="window.showWaModal()">💬 Import WhatsApp</button>
       <button class="upload-btn secondary" onclick="window.showUploadModal()">+ Upload Report</button>
     </div>
@@ -380,6 +381,50 @@ body{
     <div class="detail-body" id="detail-body"></div>
   </div>
 
+</div>
+
+<!-- INBOUND MODAL -->
+<div id="inbound-modal" style="display:none;position:fixed;inset:0;background:rgba(26,22,18,0.5);z-index:500;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:var(--r);padding:28px;width:100%;max-width:500px;box-shadow:0 8px 32px rgba(26,22,18,0.2)">
+    <div style="font-size:16px;font-weight:400;margin-bottom:4px">Log Inbound Shipment</div>
+    <div style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:20px">Upload Israel shipment invoice — Claude reads SKUs and quantities automatically</div>
+
+    <div class="upload-inline" id="inbound-drop" style="cursor:pointer;margin-bottom:16px">
+      <div class="upload-inline-text">Drop invoice PDF here or <span>click to browse</span></div>
+      <div id="inbound-filename" style="margin-top:6px;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace"></div>
+      <input type="file" id="inbound-file-in" accept=".pdf" style="display:none" />
+    </div>
+
+    <div class="loader" id="inbound-loader" style="margin-bottom:12px"><div class="spin"></div>Claude is reading the invoice...</div>
+
+    <div id="inbound-skus-preview" style="display:none;margin-bottom:16px">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;font-family:'DM Mono',monospace">Extracted SKUs</div>
+      <div id="inbound-skus-list" style="background:var(--warm);border-radius:var(--rs);padding:12px 14px;font-size:11px;font-family:'DM Mono',monospace;line-height:2"></div>
+    </div>
+
+    <div id="inbound-form" style="display:none">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;font-family:'DM Mono',monospace">When did this shipment arrive in Japan?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="fg" style="margin:0">
+          <div class="fl">Arrival Month</div>
+          <input type="month" class="fi" id="inbound-month" />
+        </div>
+        <div class="fg" style="margin:0">
+          <div class="fl">Receiving Warehouse</div>
+          <select class="fs" id="inbound-warehouse">
+            <option>DSV Funabashi</option>
+            <option>Sagawa (Hyutech Noorin)</option>
+            <option>Silver Family Warehouse</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:4px">
+      <button class="upload-btn" id="inbound-save-btn" style="display:none" onclick="window.saveInbound()">Save Inbound</button>
+      <button class="upload-btn secondary" onclick="window.closeInboundModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- WHATSAPP MODAL -->
@@ -1023,6 +1068,137 @@ async function _readExcelDirect(file){
     r.readAsBinaryString(file);
   });
 }
+
+// ═══ INBOUND INVOICE ════════════════════════════════════
+let _inboundPending = null;
+
+window.showInboundModal = function(){
+  document.getElementById('inbound-modal').style.display='flex';
+  document.getElementById('inbound-filename').textContent='';
+  document.getElementById('inbound-skus-preview').style.display='none';
+  document.getElementById('inbound-form').style.display='none';
+  document.getElementById('inbound-save-btn').style.display='none';
+  // Default to current month
+  const now = new Date();
+  document.getElementById('inbound-month').value = now.toISOString().substring(0,7);
+  _inboundPending = null;
+};
+window.closeInboundModal = function(){ document.getElementById('inbound-modal').style.display='none'; _inboundPending=null; };
+
+document.addEventListener('DOMContentLoaded', function(){
+  const inboundFile = document.getElementById('inbound-file-in');
+  const inboundDrop = document.getElementById('inbound-drop');
+  if(!inboundFile||!inboundDrop) return;
+  inboundDrop.addEventListener('click', ()=>inboundFile.click());
+  inboundDrop.addEventListener('dragover', e=>{e.preventDefault();inboundDrop.classList.add('drag')});
+  inboundDrop.addEventListener('dragleave', ()=>inboundDrop.classList.remove('drag'));
+  inboundDrop.addEventListener('drop', e=>{
+    e.preventDefault();inboundDrop.classList.remove('drag');
+    if(e.dataTransfer.files[0]) _processInboundFile(e.dataTransfer.files[0]);
+  });
+  inboundFile.addEventListener('change', e=>{
+    if(e.target.files[0]) _processInboundFile(e.target.files[0]);
+  });
+});
+
+async function _processInboundFile(file){
+  document.getElementById('inbound-filename').textContent = file.name;
+  document.getElementById('inbound-loader').classList.add('on');
+  document.getElementById('inbound-skus-preview').style.display='none';
+  document.getElementById('inbound-form').style.display='none';
+  document.getElementById('inbound-save-btn').style.display='none';
+
+  try{
+    const b64 = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(',')[1]);
+      r.onerror=()=>rej(new Error('read failed'));
+      r.readAsDataURL(file);
+    });
+
+    const raw = await _claude(`This is a commercial invoice from Nasri Nehmeh Bakery / Nina Bakery Israel to Ninapita Japan.
+Extract all product line items.
+
+Return ONLY JSON:
+{
+  "invoice_number": "string",
+  "departure_date": "YYYY-MM-DD",
+  "skus": {
+    "J001": {"name":"Nina Large φ15cm 100g","cases":448},
+    "J003": {"name":"Nina Oval 20x11cm 100g","cases":158}
+  },
+  "total_cases": number,
+  "total_usd": number
+}
+
+Rules:
+- Aggregate multiple lines of same SKU (e.g. two J003 lines → sum cases)
+- Skip non-product lines (Dunnage Bags, etc.)
+- Use standard SKU codes (J001, J003, J073, J080, J096 etc)
+Raw JSON only.`,
+    [{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+     {type:'text',text:`[Invoice PDF: ${file.name}]`}]);
+
+    const result = _parseJSON(raw);
+    if(!result.skus || Object.keys(result.skus).length === 0) throw new Error('No SKUs found in invoice.');
+
+    _inboundPending = result;
+    _inboundPending.file = file.name;
+
+    // Show SKU list
+    const skuHtml = Object.entries(result.skus).map(([sku,d])=>
+      `<div style="display:flex;justify-content:space-between"><span style="color:var(--gold)">${sku}</span><span>${d.name}</span><span style="color:var(--ink2);font-weight:500">${d.cases} cases</span></div>`
+    ).join('');
+
+    document.getElementById('inbound-skus-list').innerHTML =
+      skuHtml +
+      `<div style="border-top:1px solid var(--paper);margin-top:8px;padding-top:8px;display:flex;justify-content:space-between">
+        <span style="color:var(--ink3)">Invoice ${result.invoice_number||''} · Departed ${result.departure_date||'?'}</span>
+        <strong>${result.total_cases||Object.values(result.skus).reduce((s,d)=>s+d.cases,0)} cases total</strong>
+      </div>`;
+
+    document.getElementById('inbound-skus-preview').style.display='block';
+    document.getElementById('inbound-form').style.display='block';
+    document.getElementById('inbound-save-btn').style.display='inline-flex';
+
+  }catch(err){
+    document.getElementById('inbound-skus-list').innerHTML = `<span style="color:var(--red)">${err.message}</span>`;
+    document.getElementById('inbound-skus-preview').style.display='block';
+  }finally{
+    document.getElementById('inbound-loader').classList.remove('on');
+  }
+}
+
+window.saveInbound = function(){
+  if(!_inboundPending) return;
+  const month = document.getElementById('inbound-month').value; // YYYY-MM
+  const warehouse = document.getElementById('inbound-warehouse').value;
+  if(!month){ alert('Please select arrival month.'); return; }
+
+  const existing = DB.movements();
+  let added = 0;
+
+  Object.entries(_inboundPending.skus).forEach(([sku,d])=>{
+    existing.push({
+      id: Date.now()+Math.random(),
+      date: month+'-01', // first of arrival month
+      sku,
+      qty: d.cases,
+      type: 'in',
+      warehouse,
+      destination: 'Israel Import',
+      source: 'invoice',
+      invoice: _inboundPending.invoice_number||'',
+      file: _inboundPending.file
+    });
+    added++;
+  });
+
+  DB.set('movements', existing);
+  window.closeInboundModal();
+  _render();
+  alert(`Saved ${added} inbound SKUs for ${month} → ${warehouse}`);
+};
 
 // ═══ SEED KNOWN REPORTS ═════════════════════════════════
 // Some reports are scanned PDFs that can't be auto-extracted.
