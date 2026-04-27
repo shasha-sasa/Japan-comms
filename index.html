@@ -722,11 +722,35 @@ function _getKnownCategories(){
   return Array.from(cats);
 }
 
+// Store results globally for bulk save
+let _inboxResults = [];
+
 function _renderInboxResults(results){
+  _inboxResults = results;
   const el=document.getElementById('inbox-results');
   if(!results.length){el.innerHTML='<div class="empty"><div class="empty-icon">◌</div>Nothing to show.</div>';return}
-  el.innerHTML=`<div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace;margin-bottom:12px">${results.length} item${results.length!==1?'s':''} classified — review and confirm</div>`
-  +results.map((r,i)=>{
+
+  // Count by type
+  const needsReview=results.filter(r=>r.movements?.length||r.snapshot_items?.length||r.cost_items?.length);
+  const contextOnly=results.filter(r=>!r.movements?.length&&!r.snapshot_items?.length&&!r.cost_items?.length&&!r._error);
+  const errors=results.filter(r=>r._error);
+  const confirmed=results.filter(r=>r._confirmed);
+
+  const summaryBar=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:3px">${results.length} document${results.length!==1?'s':''} classified</div>
+      <div style="font-size:10px;color:var(--t2);font-family:'IBM Plex Mono',monospace">
+        ${needsReview.length} need review · ${contextOnly.length} context only · ${errors.length?errors.length+' errors · ':''} ${confirmed.length} saved
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${contextOnly.filter(r=>!r._confirmed).length>0?`<button class="btn btn-green" style="font-size:11px;padding:7px 12px" onclick="window.saveAllContext()">Save ${contextOnly.filter(r=>!r._confirmed).length} Context Entries</button>`:''}
+      ${needsReview.filter(r=>!r._confirmed).length>0?`<button class="btn btn-gold" style="font-size:11px;padding:7px 12px" onclick="window.saveAllReviewed()">Save All ${needsReview.filter(r=>!r._confirmed).length} Operational</button>`:''}
+      <button class="btn btn-ghost" style="font-size:11px;padding:7px 12px" onclick="window.saveEverything()">Save Everything</button>
+    </div>
+  </div>`;
+
+  el.innerHTML=summaryBar+results.map((r,i)=>{
     const catColor=CAT_COLORS[r.category]||'b-gray';
     const hasMovs=r.movements?.length>0;
     const hasSnap=r.snapshot_items?.length>0;
@@ -814,9 +838,41 @@ window._confirmItem=function(i, r){
   }
 
   // Mark as confirmed
-  const card=document.getElementById('classify-'+i);
-  if(card){card.classList.add('confirmed');card.querySelector('.classify-header').innerHTML=`<span class="badge b-green">✓ Saved</span><span style="font-size:12px;color:var(--t2)">${r.title||r._source}</span>`}
+  if(i>=0){
+    if(_inboxResults[i])_inboxResults[i]._confirmed=true;
+    const card=document.getElementById('classify-'+i);
+    if(card){card.classList.add('confirmed');card.querySelector('.classify-header').innerHTML=`<span class="badge b-green">✓ Saved</span><span style="font-size:12px;color:var(--t2)">${r.title||r._source}</span>`}
+  }
   _updateStats();
+};
+
+// Bulk save — context only entries
+window.saveAllContext=function(){
+  _inboxResults.forEach((r,i)=>{
+    if(!r._confirmed&&!r.movements?.length&&!r.snapshot_items?.length&&!r.cost_items?.length&&!r._error){
+      window._confirmItem(i,r);
+    }
+  });
+  _renderInboxResults(_inboxResults);
+};
+
+// Bulk save — operational entries (movements, stock, costs)
+window.saveAllReviewed=function(){
+  _inboxResults.forEach((r,i)=>{
+    if(!r._confirmed&&(r.movements?.length||r.snapshot_items?.length||r.cost_items?.length)&&!r._error){
+      window._confirmItem(i,r);
+    }
+  });
+  _renderInboxResults(_inboxResults);
+};
+
+// Save everything at once
+window.saveEverything=function(){
+  if(!confirm('Save all '+_inboxResults.filter(r=>!r._confirmed&&!r._error).length+' items? Review the list first to make sure everything looks correct.'))return;
+  _inboxResults.forEach((r,i)=>{
+    if(!r._confirmed&&!r._error)window._confirmItem(i,r);
+  });
+  _renderInboxResults(_inboxResults);
 };
 
 // ═══ CONTEXT ═════════════════════════════════════════════
