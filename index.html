@@ -379,28 +379,33 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1)
 
       <!-- ═══ RECONCILIATION ═══ -->
       <div id="page-reconciliation" class="content" style="display:none">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="font-size:11px;color:var(--t2)">Warehouse:</div>
-          <select class="fs" id="recon-wh" onchange="window.renderRecon()" style="width:auto">
-            <option value="all">All Warehouses</option>
-            <option value="DSV Funabashi">DSV Funabashi</option>
-            <option value="Sagawa (Hyutech Noorin)">Sagawa (Hyutech Noorin)</option>
-            <option value="Silver Family Warehouse">Silver Family Warehouse</option>
-          </select>
-          <div id="recon-meta" style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:auto"></div>
+        <!-- MONTH SELECTOR -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <div style="font-size:11px;color:var(--t2)">Month:</div>
+          <select class="fs" id="recon-month-sel" onchange="window.renderRecon()" style="width:160px"></select>
+          <div id="recon-status-pill" style="font-size:10px;padding:4px 10px;border-radius:10px;font-family:'IBM Plex Mono',monospace"></div>
         </div>
-        <div id="recon-summary" style="margin-bottom:12px"></div>
-        <div class="tbl-wrap">
-          <div class="recon-grid">
-            <div class="recon-hd">Product</div><div class="recon-hd">Warehouse</div>
-            <div class="recon-hd right" style="text-align:right">Snapshot</div>
-            <div class="recon-hd right" style="text-align:right">+In</div>
-            <div class="recon-hd right" style="text-align:right">−Out</div>
-            <div class="recon-hd right" style="text-align:right">Today</div>
-            <div class="recon-hd">Status</div>
+        <!-- COMPLETENESS PANEL -->
+        <div id="recon-completeness" style="margin-bottom:16px"></div>
+        <!-- INLINE UPLOAD FOR MISSING REPORTS -->
+        <div id="recon-upload-area" style="display:none;margin-bottom:16px">
+          <div class="card" style="margin-bottom:0;border-left:3px solid var(--gold)">
+            <div class="card-h">Upload Missing Report</div>
+            <div id="recon-upload-hint" style="font-size:12px;color:var(--t2);margin-bottom:12px"></div>
+            <div class="inbox-drop" id="recon-drop" onclick="document.getElementById('recon-file-in').click()" style="padding:20px">
+              <div class="inbox-drop-icon" style="font-size:20px">↓</div>
+              <div class="inbox-drop-title" style="font-size:12px">Drop warehouse report here</div>
+              <div class="inbox-drop-sub">PDF or Excel</div>
+              <input type="file" id="recon-file-in" accept=".pdf,.xlsx,.xls" style="display:none" />
+            </div>
+            <div class="loader" id="recon-upload-loader" style="margin-top:10px">
+              <div class="spin"></div>
+              <div class="loader-txt"><span>Claude</span> is reading the report...</div>
+            </div>
           </div>
-          <div id="recon-rows"></div>
         </div>
+        <!-- RESULTS -->
+        <div id="recon-results"></div>
       </div>
 
       <!-- ═══ COSTS ═══ -->
@@ -682,14 +687,18 @@ Return ONLY a JSON object (no markdown, no explanation). Keep english_summary co
   "extracted_data": {},
   "context_entry": "2-3 sentence fact for knowledge base",
   "movements": [{"type":"out","date":"YYYY-MM-DD","sku":"J001","product_name":"name","qty":1,"destination":"","carrier":"","warehouse":"DSV Funabashi","expired":false,"reference":""}],
-  "snapshot_items": [{"sku":"J001","name":"name","warehouse":"DSV Funabashi","current_stock":0,"lot":"","expiry":"","broken":false}],
-  "cost_items": [{"partner":"","category":"","amount_jpy":0,"period":"YYYY-MM","description":""}]
+  "snapshot_items": [{"sku":"J001","name":"name","warehouse":"DSV Funabashi","current_stock":0,"opening_stock":0,"inbound":0,"reported_outbound":0,"lot":"","expiry":"","broken":false}],
+  "cost_items": [{"partner":"","category":"","amount_jpy":0,"period":"YYYY-MM","description":""}],
+  "recon_month": "YYYY-MM or null — the month this inventory report covers",
+  "recon_warehouse": "warehouse name this report is from, or null"
 }
 
 Rules:
 - movements: delivery/shipment docs only. Empty array [] otherwise.
-- snapshot_items: inventory reports only. Empty array [] otherwise.
+- snapshot_items: inventory reports only. Empty array [] otherwise. For each SKU include: opening_stock (前月在庫), inbound (入庫数), reported_outbound (sum of all 出庫数 columns), current_stock (在庫数 = closing stock).
 - cost_items: invoices/billing only. Empty array [] otherwise.
+- recon_month: for inventory reports, the YYYY-MM period the report covers (e.g. Inventory_202602.xlsx = 2026-02). Null for non-inventory docs.
+- recon_warehouse: for inventory reports, which warehouse (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse, or detected from content). Null for non-inventory docs.
 - WhatsApp: extract ALL deliveries, one entry per SKU per message.
 - Return raw JSON only — no triple backticks.
 
@@ -815,6 +824,32 @@ window._confirmItem=function(i, r){
     extracted_data:r.extracted_data||{}
   });
   DB.set('context',ctx);
+
+  // Save reconciliation data if this is an inventory report
+  if(r.recon_month && r.snapshot_items?.length){
+    const recons=DB.get('recons',{});
+    const month=r.recon_month;
+    const wh=r.recon_warehouse||'Unknown Warehouse';
+    if(!recons[month])recons[month]={month,warehouses:{},movements_outbound:{},movements_inbound:{}};
+    // Build per-SKU data from snapshot_items
+    const skuData={};
+    r.snapshot_items.forEach(s=>{
+      skuData[s.sku]={
+        name:s.name,
+        opening:s.opening_stock||0,
+        inbound:s.inbound||0,
+        reported_outbound:s.reported_outbound||0,
+        reported_closing:s.current_stock||0,
+        broken:s.broken||false
+      };
+    });
+    recons[month].warehouses[wh]={
+      file:r._source,
+      uploaded:new Date().toISOString(),
+      skus:skuData
+    };
+    DB.set('recons',recons);
+  }
 
   // Log this document permanently
   const dlog=DB.doclog();
@@ -1016,86 +1051,286 @@ function _renderMovements(){
 }
 
 // ═══ RECONCILIATION ══════════════════════════════════════
-window.renderRecon=function(){
-  const snaps=DB.snapshots();
-  const el=document.getElementById('recon-rows');
-  if(!snaps.length){
-    el.innerHTML='<div style="padding:32px;text-align:center;color:var(--t3)">Process an inventory report first.</div>';
-    return;
-  }
 
-  // Always use latest snapshot — no manual selection needed
-  const latest=snaps[0];
-  const cutoff=_snapCutoff(latest);
-  const whFilter=document.getElementById('recon-wh')?.value||'all';
-
-  // Show snapshot info
-  const meta=document.getElementById('recon-meta');
-  if(meta)meta.textContent=`Snapshot: ${latest.file} · ${new Date(latest.date).toLocaleDateString('en-GB',{dateStyle:'medium'})}`;
-
-  // Build per-SKU data from latest snapshot
-  const bysku={};
-  latest.items.forEach(item=>{
-    if(!bysku[item.sku])bysku[item.sku]={
-      name:item.name,
-      warehouse:item.warehouse||latest.warehouse||'DSV Funabashi',
-      snapshot:0,in:0,out:0,broken:0
-    };
-    item.broken
-      ? bysku[item.sku].broken+=item.current_stock
-      : bysku[item.sku].snapshot+=item.current_stock;
+// Detect which warehouses are active in a given month from movements
+function _detectWarehousesInMonth(month){
+  const movs=DB.movements();
+  const whs=new Set();
+  movs.forEach(m=>{
+    if(m.date&&m.date.startsWith(month)&&m.warehouse){
+      whs.add(m.warehouse);
+    }
   });
+  return Array.from(whs);
+}
 
-  // Apply all movements since snapshot
-  let movCount=0;
-  DB.movements().forEach(m=>{
-    const d=new Date(m.date);
-    if(d<=cutoff)return; // before snapshot — skip
-    if(!bysku[m.sku])return; // unknown SKU — skip
-    movCount++;
-    m.type==='in'?bysku[m.sku].in+=m.qty:bysku[m.sku].out+=m.qty;
+// Get all months that have any data (movements or reports)
+function _getDataMonths(){
+  const months=new Set();
+  // From movements
+  DB.movements().forEach(m=>{ if(m.date&&m.date.length>=7)months.add(m.date.substring(0,7)); });
+  // From recon reports
+  const recons=DB.get('recons',{});
+  Object.keys(recons).forEach(m=>months.add(m));
+  // From snapshots
+  DB.snapshots().forEach(s=>{
+    const match=s.file.match(/(\d{4})(\d{2})/);
+    if(match)months.add(match[1]+'-'+match[2]);
   });
+  return Array.from(months).sort().reverse();
+}
 
-  // Filter by warehouse if selected
-  let rows=Object.entries(bysku);
-  if(whFilter!=='all')rows=rows.filter(([,d])=>d.warehouse===whFilter);
-
-  const negCount=rows.filter(([,d])=>d.snapshot+d.in-d.out<0).length;
-
-  // Summary pills
-  document.getElementById('recon-summary').innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-    <span style="font-size:10px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--t2)">${movCount} movements since snapshot</span>
-    ${negCount>0
-      ?`<span style="font-size:10px;background:var(--red-dim);border:1px solid rgba(184,85,85,.2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--red)">⚠ ${negCount} SKU${negCount!==1?'s':''} negative — check inbound</span>`
-      :`<span style="font-size:10px;background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:4px 10px;font-family:'IBM Plex Mono',monospace;color:var(--green)">✓ All positive</span>`}
-  </div>`;
-
-  if(!rows.length){
-    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--t3)">No data for selected warehouse.</div>';
-    return;
-  }
-
-  el.innerHTML=rows.map(([sku,d])=>{
-    const today=d.snapshot+d.in-d.out;
-    const neg=today<0;
-    const whColor=d.warehouse.includes('Sagawa')?'var(--blue)':d.warehouse.includes('Silver')?'var(--purple)':'var(--gold)';
-    return `<div class="recon-grid" style="border-bottom:1px solid var(--b1)${neg?';background:rgba(184,85,85,0.03)':''}">
-      <div class="recon-cell"><div>
-        <div style="font-weight:500">${d.name}</div>
-        <div style="font-size:10px;color:var(--gold);font-family:'IBM Plex Mono',monospace">${sku}</div>
-      </div></div>
-      <div class="recon-cell" style="font-size:10px;color:${whColor}">${d.warehouse}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--t2)">${d.snapshot}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--green)">${d.in>0?'+'+d.in:'—'}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end;color:var(--red)">${d.out>0?'−'+d.out:'—'}</div>
-      <div class="recon-cell mono right" style="justify-content:flex-end;font-weight:700;font-size:14px;color:${neg?'var(--red)':today<=5?'var(--orange)':'var(--t1)'}">${today}</div>
-      <div class="recon-cell">${d.in===0&&d.out===0
-        ?'<span class="badge b-gray">No movs</span>'
-        :neg?'<span class="badge b-red">⚠ Check</span>'
-        :'<span class="badge b-green">✓</span>'}</div>
-    </div>`;
+function _populateMonthSel(){
+  const sel=document.getElementById('recon-month-sel');
+  if(!sel)return;
+  const months=_getDataMonths();
+  const cur=sel.value;
+  if(!months.length){sel.innerHTML='<option value="">No data yet</option>';return;}
+  sel.innerHTML=months.map(m=>{
+    const d=new Date(m+'-01');
+    const label=d.toLocaleDateString('en-GB',{year:'numeric',month:'long'});
+    return `<option value="${m}">${label}</option>`;
   }).join('');
+  if(cur&&months.includes(cur))sel.value=cur;
+}
+
+window.renderRecon=function(){
+  _populateMonthSel();
+  const sel=document.getElementById('recon-month-sel');
+  const month=sel?.value;
+  if(!month){
+    document.getElementById('recon-results').innerHTML='<div class="empty"><div class="empty-icon">⊟</div>No data yet.<br>Process inventory reports and movements through the Inbox.</div>';
+    return;
+  }
+
+  const recons=DB.get('recons',{});
+  const monthRecon=recons[month]||{warehouses:{}};
+
+  // Detect warehouses active this month from movements
+  const activeWhs=_detectWarehousesInMonth(month);
+  // Also include warehouses that have uploaded reports for this month
+  Object.keys(monthRecon.warehouses).forEach(wh=>{ if(!activeWhs.includes(wh))activeWhs.push(wh); });
+
+  // Get movements for this month
+  const movs=DB.movements().filter(m=>m.date&&m.date.startsWith(month));
+  const outbound={};
+  const inbound={};
+  movs.forEach(m=>{
+    if(m.type==='out'){outbound[m.sku]=(outbound[m.sku]||0)+m.qty;}
+    else{inbound[m.sku]=(inbound[m.sku]||0)+m.qty;}
+  });
+
+  // Determine status
+  const uploaded=Object.keys(monthRecon.warehouses);
+  const missing=activeWhs.filter(wh=>!uploaded.includes(wh));
+  const now=new Date();
+  const monthDate=new Date(month+'-01');
+  const isCurrent=monthDate.getFullYear()===now.getFullYear()&&monthDate.getMonth()===now.getMonth();
+
+  let status, statusColor, statusLabel;
+  if(isCurrent){status='in_progress';statusColor='var(--blue)';statusLabel='⏳ In Progress';}
+  else if(uploaded.length===0){status='no_reports';statusColor='var(--t3)';statusLabel='No Reports';}
+  else if(missing.length>0){status='incomplete';statusColor='var(--orange)';statusLabel='⚠ Incomplete';}
+  else{status='complete';statusColor='var(--green)';statusLabel='✓ Complete';}
+
+  // Status pill
+  const pill=document.getElementById('recon-status-pill');
+  if(pill){pill.style.background=status==='complete'?'var(--green-dim)':status==='incomplete'?'var(--orange-dim)':status==='in_progress'?'var(--blue-dim)':'rgba(100,100,100,.1)';pill.style.color=statusColor;pill.style.border=`1px solid ${statusColor}30`;pill.textContent=statusLabel;}
+
+  // Completeness panel
+  const compEl=document.getElementById('recon-completeness');
+  const uploadEl=document.getElementById('recon-upload-area');
+  const hintEl=document.getElementById('recon-upload-hint');
+
+  compEl.innerHTML=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">Warehouse Reports</div>`+
+  activeWhs.map(wh=>{
+    const hasReport=!!monthRecon.warehouses[wh];
+    const whData=monthRecon.warehouses[wh];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid ${hasReport?'rgba(61,158,107,.2)':'rgba(184,85,85,.2)'};border-radius:var(--rs);margin-bottom:6px">
+      <span style="font-size:14px">${hasReport?'✓':'✗'}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500">${wh}</div>
+        ${hasReport?`<div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace">${whData.file} · ${new Date(whData.uploaded).toLocaleDateString('en-GB',{dateStyle:'short'})}</div>`
+        :`<div style="font-size:10px;color:var(--red);font-family:'IBM Plex Mono',monospace">Report not uploaded — detected from movements</div>`}
+      </div>
+      <span class="badge ${hasReport?'b-green':'b-red'}">${hasReport?'Uploaded':'Missing'}</span>
+    </div>`;
+  }).join('')+(activeWhs.length===0?'<div style="font-size:12px;color:var(--t3)">No warehouse activity detected for this month.</div>':'');
+
+  // Show upload area if missing reports
+  if(missing.length>0&&!isCurrent){
+    uploadEl.style.display='block';
+    hintEl.textContent=`Missing: ${missing.join(', ')}. Upload their stock report for ${month} to complete reconciliation.`;
+  } else {
+    uploadEl.style.display='none';
+  }
+
+  // Results — only show if at least one report uploaded
+  const resultsEl=document.getElementById('recon-results');
+  if(!uploaded.length){
+    resultsEl.innerHTML=missing.length?'':'<div class="empty"><div class="empty-icon">⊟</div>Upload warehouse reports above to see reconciliation.</div>';
+    return;
+  }
+
+  // Build per-SKU reconciliation
+  const allSkus={};
+
+  // From uploaded warehouse reports
+  uploaded.forEach(wh=>{
+    const whData=monthRecon.warehouses[wh];
+    Object.entries(whData.skus||{}).forEach(([sku,d])=>{
+      if(!allSkus[sku])allSkus[sku]={name:d.name,warehouses:{}};
+      allSkus[sku].warehouses[wh]=d;
+    });
+  });
+
+  // Totals per SKU
+  const skuRows=Object.entries(allSkus).map(([sku,d])=>{
+    let totalOpening=0,totalInbound=0,totalReportedOut=0,totalReportedClosing=0;
+    Object.values(d.warehouses).forEach(w=>{
+      totalOpening+=w.opening||0;
+      totalInbound+=w.inbound||0;
+      totalReportedOut+=w.reported_outbound||0;
+      totalReportedClosing+=w.reported_closing||0;
+    });
+    const yuiOut=outbound[sku]||0;
+    const yuiIn=inbound[sku]||0;
+    const calculated=totalOpening+totalInbound-yuiOut;
+    const reportedCalc=totalOpening+totalInbound-totalReportedOut;
+    const gap=totalReportedClosing-calculated;
+    const yuiVsReport=totalReportedOut-yuiOut;
+    return {sku,name:d.name,totalOpening,totalInbound,totalReportedOut,totalReportedClosing,yuiOut,calculated,gap,yuiVsReport};
+  });
+
+  const hasGaps=skuRows.some(r=>Math.abs(r.gap)>0||Math.abs(r.yuiVsReport)>0);
+
+  resultsEl.innerHTML=`
+    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">Reconciliation — ${new Date(month+'-01').toLocaleDateString('en-GB',{year:'numeric',month:'long'})}</div>
+    ${hasGaps?`<div style="background:var(--orange-dim);border:1px solid rgba(232,146,74,.2);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--orange)">⚠ Discrepancies detected — review highlighted rows</div>`
+    :`<div style="background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green)">✓ All balances within tolerance</div>`}
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>SKU</th><th>Product</th>
+          <th class="right">Opening</th>
+          <th class="right">+Inbound</th>
+          <th class="right">−Yui Out</th>
+          <th class="right">Calculated</th>
+          <th class="right">Report Closing</th>
+          <th class="right">Gap</th>
+          <th class="right">Yui vs Report</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody>
+          ${skuRows.map(r=>{
+            const hasGap=Math.abs(r.gap)>0;
+            const hasYuiGap=Math.abs(r.yuiVsReport)>0;
+            const rowBg=hasGap?'background:rgba(184,85,85,0.03)':'';
+            return `<tr style="${rowBg}">
+              <td class="mono" style="color:var(--gold)">${r.sku}</td>
+              <td style="font-size:11px">${r.name}</td>
+              <td class="mono right">${r.totalOpening}</td>
+              <td class="mono right" style="color:var(--green)">${r.totalInbound>0?'+'+r.totalInbound:'—'}</td>
+              <td class="mono right" style="color:var(--red)">${r.yuiOut>0?'−'+r.yuiOut:'—'}</td>
+              <td class="mono right" style="font-weight:700;color:${r.calculated<0?'var(--red)':r.calculated<=5?'var(--orange)':'var(--t1)'}">${r.calculated}</td>
+              <td class="mono right" style="color:var(--t2)">${r.totalReportedClosing}</td>
+              <td class="mono right" style="font-weight:600;color:${hasGap?'var(--red)':'var(--t3)'}">${hasGap?(r.gap>0?'+':'')+r.gap:'—'}</td>
+              <td class="mono right" style="color:${hasYuiGap?'var(--orange)':'var(--t3)'}">${hasYuiGap?(r.yuiVsReport>0?'+':'')+r.yuiVsReport:'—'}</td>
+              <td>${hasGap?'<span class="badge b-red">Gap</span>':hasYuiGap?'<span class="badge b-orange">Check</span>':'<span class="badge b-green">✓</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:8px;line-height:1.8">
+      <strong style="color:var(--t2)">Gap</strong> = Report Closing − Calculated (should be 0)<br>
+      <strong style="color:var(--t2)">Yui vs Report</strong> = Report outbound − Yui messages outbound (should be 0)
+    </div>`;
 };
+
+// Inline upload in reconciliation tab
+document.addEventListener('DOMContentLoaded',()=>{
+  const ri=document.getElementById('recon-file-in');
+  const rd=document.getElementById('recon-drop');
+  if(ri)ri.addEventListener('change',e=>_reconUpload(e.target.files[0]));
+  if(rd){
+    rd.addEventListener('dragover',e=>{e.preventDefault();rd.classList.add('drag')});
+    rd.addEventListener('dragleave',()=>rd.classList.remove('drag'));
+    rd.addEventListener('drop',e=>{e.preventDefault();rd.classList.remove('drag');_reconUpload(e.dataTransfer.files[0])});
+  }
+});
+
+async function _reconUpload(file){
+  if(!file)return;
+  const loader=document.getElementById('recon-upload-loader');
+  loader.classList.add('on');
+  try{
+    const data=await _readFile(file);
+    const skus=DB.skus();
+    const skuList=Object.values(skus).map(s=>`${s.code}: ${s.name}`).join('\n');
+    const extra=data.type==='pdf'?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:data.content}},{type:'text',text:`[PDF: ${file.name}]`}]:[];
+    const text=data.type==='pdf'?'':`[File: ${file.name}]\n${data.content}`;
+
+    const month=document.getElementById('recon-month-sel')?.value||'';
+    const raw=await _claude(`Warehouse inventory report for Nina Pita Japan.
+Known SKUs: ${skuList}
+
+Extract per-SKU data. For each SKU include:
+- opening_stock: 前月在庫 (previous month stock = opening balance)
+- inbound: 入庫数 (received this month)
+- reported_outbound: sum of ALL 出庫数 columns (total shipped out per warehouse report)
+- reported_closing: 在庫数 (closing stock = current stock at end of month)
+
+Also identify:
+- recon_month: YYYY-MM this report covers (from filename or header, e.g. ${month})
+- recon_warehouse: which warehouse (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse, or from content)
+
+Return ONLY JSON:
+{
+  "recon_month": "YYYY-MM",
+  "recon_warehouse": "warehouse name",
+  "skus": {
+    "J001": {"name":"product name","opening_stock":0,"inbound":0,"reported_outbound":0,"reported_closing":0,"broken":false}
+  }
+}
+Raw JSON only.
+${text}`, extra);
+
+    const result=_parseJSON(raw);
+    if(!result.recon_month||!result.recon_warehouse||!result.skus){
+      throw new Error('Could not identify month or warehouse from this report.');
+    }
+
+    // Save to recons
+    const recons=DB.get('recons',{});
+    const m=result.recon_month;
+    if(!recons[m])recons[m]={month:m,warehouses:{}};
+    recons[m].warehouses[result.recon_warehouse]={
+      file:file.name,
+      uploaded:new Date().toISOString(),
+      skus:result.skus
+    };
+    DB.set('recons',recons);
+
+    // Also save to context
+    const ctx=DB.context();
+    ctx.unshift({id:Date.now(),timestamp:new Date().toISOString(),category:'Inventory Report',title:`${result.recon_warehouse} — ${m}`,source:file.name,affects:['Stock/Inventory'],action_now:'update_stock',context_entry:`${result.recon_warehouse} inventory report for ${m} uploaded. ${Object.keys(result.skus).length} SKUs tracked.`,extracted_data:{}});
+    DB.set('context',ctx);
+
+    // Also update doclog
+    const dlog=DB.doclog();
+    dlog.unshift({id:Date.now(),timestamp:new Date().toISOString(),filename:file.name,category:'Inventory Report',title:`${result.recon_warehouse} — ${m}`,action:'update_stock',affects:['Stock/Inventory'],movements_count:0,snapshot_count:Object.keys(result.skus).length,costs_count:0});
+    DB.set('doclog',dlog);
+
+    _updateStats();
+    window.renderRecon();
+    alert(`Saved: ${result.recon_warehouse} report for ${m}. ${Object.keys(result.skus).length} SKUs loaded.`);
+  }catch(err){
+    alert('Error reading report: '+err.message);
+  }finally{
+    loader.classList.remove('on');
+  }
+}
 
 // ═══ COSTS ═══════════════════════════════════════════════
 function _renderCosts(){
