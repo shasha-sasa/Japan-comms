@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nina Pita — Japan Operations</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Sora:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg:#0a0a0a;--surface:#121212;--surface2:#1a1a1a;--surface3:#222;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0ede8;--text2:#7a7670;--text3:#4a4640;
+  --accent:#e8b86d;--accent-bg:rgba(232,184,109,0.1);
+  --green:#4caf7d;--green-bg:rgba(76,175,125,0.08);
+  --red:#e85d5d;--red-bg:rgba(232,93,93,0.08);
+  --blue:#7b9fe8;--blue-bg:rgba(123,159,232,0.08);
+  --orange:#e8924a;--orange-bg:rgba(232,146,74,0.08);
+  --purple:#b97be8;--purple-bg:rgba(185,123,232,0.08);
+  --radius:10px;--radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.6}
+
+/* HEADER */
+.header{border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#0a0a0a;flex-shrink:0}
+.header-title{font-size:14px;font-weight:600}
+.header-sub{font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:1px}
+
+/* ALERT BANNER */
+.alert-banner{display:none;background:var(--red-bg);border-bottom:1px solid rgba(232,93,93,0.2);padding:8px 24px;font-size:11px;color:var(--red);font-family:'DM Mono',monospace;cursor:pointer}
+.alert-banner.show{display:block}
+
+/* STATS */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat{background:var(--surface);padding:12px 18px;cursor:pointer;transition:background .15s}
+.stat:hover{background:var(--surface2)}
+.stat-val{font-size:21px;font-weight:700;font-family:'DM Mono',monospace;line-height:1;margin-bottom:2px}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;overflow-x:auto}
+.tab{padding:10px 15px;font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;user-select:none}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* MAIN */
+.main{max-width:1080px;margin:0 auto;padding:22px 24px}
+
+/* CARDS & SECTIONS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px}
+.card-title{font-size:12px;font-weight:600;margin-bottom:12px;color:var(--text)}
+.section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* TABLE */
+.table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface)}
+.data-table td{padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;background:var(--surface);transition:background .1s}
+.data-table tr:hover td{background:var(--surface2)}
+.data-table tr:last-child td{border-bottom:none}
+.mono{font-family:'DM Mono',monospace}
+.right{text-align:right}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;font-family:'DM Mono',monospace}
+.b-ok{background:var(--green-bg);color:var(--green)}
+.b-low{background:var(--orange-bg);color:var(--orange)}
+.b-broken{background:var(--red-bg);color:var(--red)}
+.b-zero{background:rgba(74,70,64,.3);color:var(--text3)}
+.b-blue{background:var(--blue-bg);color:var(--blue)}
+.b-purple{background:var(--purple-bg);color:var(--purple)}
+
+/* UPLOAD ZONE */
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:26px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface)}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:var(--accent-bg)}
+.drop-icon{font-size:24px;margin-bottom:7px;opacity:.5}
+.drop-title{font-size:13px;font-weight:500;margin-bottom:3px}
+.drop-sub{font-size:11px;color:var(--text2)}
+.drop-sub span{color:var(--accent)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--radius-sm);padding:9px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s}
+.btn-primary{background:var(--accent);color:#0a0a0a}
+.btn-primary:hover{background:#f0c880;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text2)}
+.btn-green{background:var(--green-bg);border:1px solid rgba(76,175,125,.3);color:var(--green)}
+.btn-row{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
+.form-input,.form-select,.form-textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 12px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;outline:none;transition:border-color .15s;width:100%}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent)}
+.form-select option{background:var(--surface2)}
+.form-textarea{resize:vertical;min-height:130px;font-family:'DM Mono',monospace;line-height:1.6}
+
+/* LOADING */
+.loading{display:none;align-items:center;gap:10px;padding:13px 15px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);margin-top:10px}
+.loading.show{display:flex}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:11px;color:var(--text2);font-family:'DM Mono',monospace}
+.loading-text span{color:var(--accent)}
+
+/* RECON */
+.recon-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 90px}
+.recon-head{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+.recon-cell{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;background:var(--surface);display:flex;align-items:center}
+
+/* INSIGHT CARD */
+.insight-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;border-left:3px solid var(--purple)}
+.insight-title{font-weight:600;margin-bottom:4px}
+.insight-body{font-size:12px;color:var(--text2);line-height:1.7}
+
+/* MOVEMENT TAGS */
+.tag-in{color:var(--green);font-family:'DM Mono',monospace;font-size:11px}
+.tag-out{color:var(--red);font-family:'DM Mono',monospace;font-size:11px}
+
+/* EMPTY */
+.empty{text-align:center;padding:44px 24px;color:var(--text3)}
+.empty-icon{font-size:30px;margin-bottom:10px;opacity:.3}
+
+/* WHATSAPP */
+.wa-msg-preview{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:8px}
+.wa-msg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.wa-confirm-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+@media(max-width:768px){
+  .stats-bar{grid-template-columns:repeat(3,1fr)}
+  .two-col{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .main{padding:14px}
+  .recon-grid{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* AUTH */
+#auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+#auth-screen.hidden{display:none}
+.auth-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:40px 36px;width:100%;max-width:360px;text-align:center}
+.auth-logo{width:52px;height:52px;background:var(--accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#0a0a0a;margin:0 auto 20px}
+.auth-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.auth-sub{font-size:11px;color:var(--text2);margin-bottom:24px}
+.auth-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none;text-align:center;letter-spacing:.05em;margin-bottom:12px}
+.auth-input:focus{border-color:var(--accent)}
+.auth-btn{width:100%;background:var(--accent);color:#0a0a0a;border:none;border-radius:var(--radius-sm);padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:background .15s}
+.auth-btn:hover{background:#f0c880}
+.auth-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px}
+.sync-indicator{position:fixed;bottom:14px;right:14px;font-size:10px;font-family:'DM Mono',monospace;padding:5px 10px;border-radius:20px;background:var(--surface2);border:1px solid var(--border2);color:var(--text3);z-index:200;transition:all .3s}
+.sync-indicator.syncing{color:var(--accent);border-color:rgba(232,184,109,.3)}
+.sync-indicator.saved{color:var(--green);border-color:rgba(76,175,125,.3)}
+.sync-indicator.error{color:var(--red);border-color:rgba(232,93,93,.3)}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">NP</div>
+    <div class="auth-title">Japan Operations</div>
+    <div class="auth-sub">Nina Pita — Restricted Access</div>
+    <input class="auth-input" type="password" id="auth-pw" placeholder="Enter password" onkeydown="if(event.key==='Enter')window.authSubmit()" />
+    <button class="auth-btn" onclick="window.authSubmit()">Sign In</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+<div id="sync-indicator" class="sync-indicator" style="display:none">Synced</div>
+<div class="header">
+  <div class="header-left">
+    <div class="logo">NP</div>
+    <div>
+      <div class="header-title">Japan Operations</div>
+      <div class="header-sub" id="last-updated">No data loaded</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)"></div>
+    <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">Claude AI Active</span>
+  </div>
+</div>
+
+<div class="alert-banner" id="alert-banner" onclick="switchTab('alerts')">⚠ Issues detected — click to view alerts</div>
+
+<div class="stats-bar">
+  <div class="stat" onclick="switchTab('overview')"><div class="stat-val" id="s-skus" style="color:var(--blue)">—</div><div class="stat-label">Active SKUs</div></div>
+  <div class="stat" onclick="switchTab('overview')"><div class="stat-val" id="s-total" style="color:var(--accent)">—</div><div class="stat-label">Total Cases</div></div>
+  <div class="stat" onclick="switchTab('movements')"><div class="stat-val" id="s-out" style="color:var(--red)">—</div><div class="stat-label">Out This Month</div></div>
+  <div class="stat" onclick="switchTab('alerts')"><div class="stat-val" id="s-alerts" style="color:var(--orange)">—</div><div class="stat-label">Alerts</div></div>
+  <div class="stat" onclick="switchTab('reconciliation')"><div class="stat-val" id="s-recon" style="color:var(--green)">—</div><div class="stat-label">SKUs Tracked</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview')">📦 Stock</div>
+  <div class="tab" onclick="switchTab('whatsapp')">💬 WhatsApp</div>
+  <div class="tab" onclick="switchTab('documents')">📄 Documents</div>
+  <div class="tab" onclick="switchTab('upload')">⬆ Upload Report</div>
+  <div class="tab" onclick="switchTab('movements')">↕ Movements</div>
+  <div class="tab" onclick="switchTab('reconciliation')">⚖ Reconciliation</div>
+  <div class="tab" onclick="switchTab('insights')">✦ Insights</div>
+  <div class="tab" onclick="switchTab('alerts')">🚨 Alerts</div>
+</div>
+
+<div class="main">
+
+<!-- ══════════ STOCK OVERVIEW ══════════ -->
+<div id="tab-overview">
+  <div id="overview-content">
+    <div class="empty"><div class="empty-icon">📦</div>No stock data yet.<br>Upload a monthly report to get started.</div>
+  </div>
+</div>
+
+<!-- ══════════ WHATSAPP ══════════ -->
+<div id="tab-whatsapp" style="display:none">
+  <div class="two-col" style="margin-bottom:14px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">💬 Paste WhatsApp Messages</div>
+      <div class="form-group">
+        <div class="form-label">WhatsApp content — Japanese, English, or mixed</div>
+        <textarea class="form-textarea" id="wa-text" placeholder="Paste WhatsApp messages here...&#10;&#10;Example:&#10;2026/4/22 J033 1ケース 高瀬物産へ出荷&#10;or&#10;Delivered 5 cases J002 to Takase today"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="wa-btn" onclick="processWhatsApp()">⚡ Extract Movements</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('wa-text').value=''">Clear</button>
+      </div>
+      <div class="loading" id="wa-loading">
+        <div class="spinner"></div>
+        <div class="loading-text"><span>Claude AI</span> is reading and extracting movements...</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">How this works</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        1. Paste any WhatsApp messages about deliveries, stock movements, or orders<br>
+        2. Claude reads them — Japanese or English — and extracts each movement<br>
+        3. You review and confirm what to save<br>
+        4. Movements are logged automatically and stock updates instantly<br><br>
+        <span style="color:var(--accent)">No manual data entry needed.</span>
+      </div>
+    </div>
+  </div>
+  <div id="wa-results"></div>
+</div>
+
+<!-- ══════════ DOCUMENTS ══════════ -->
+<div id="tab-documents" style="display:none">
+  <div class="card">
+    <div class="card-title">📄 Upload Logistics Documents</div>
+    <div class="drop-zone" id="doc-drop" onclick="document.getElementById('doc-file').click()">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drop PDF, Excel, or paste email below</div>
+      <div class="drop-sub">Accepts <span>.pdf</span> · <span>.xlsx</span> · Multiple files</div>
+      <input type="file" id="doc-file" multiple accept=".pdf,.xlsx,.xls" style="display:none" />
+    </div>
+    <div id="doc-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px"></div>
+    <div style="margin-top:12px">
+      <div class="form-label" style="margin-bottom:5px">Or paste email content</div>
+      <textarea class="form-textarea" id="doc-email" placeholder="Paste email body here..."></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="doc-btn" onclick="processDocuments()">⚡ Extract & Translate</button>
+      <button class="btn btn-ghost" onclick="clearDocs()">Clear</button>
+    </div>
+    <div class="loading" id="doc-loading">
+      <div class="spinner"></div>
+      <div class="loading-text"><span>Claude AI</span> is reading and translating documents...</div>
+    </div>
+  </div>
+  <div id="doc-result" style="display:none">
+    <div class="section-label">Extracted Shipment</div>
+    <div id="doc-extract-content"></div>
+    <div class="btn-row">
+      <button class="btn btn-green" id="doc-log-btn" onclick="logShipmentAsMovement()">+ Log as Movement</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('doc-result').style.display='none'">Dismiss</button>
+    </div>
+  </div>
+  <div style="margin-top:20px">
+    <div class="section-label">Shipment History</div>
+    <div id="shipment-history"></div>
+  </div>
+</div>
+
+<!-- ══════════ UPLOAD REPORT ══════════ -->
+<div id="tab-upload" style="display:none">
+  <div class="card">
+    <div class="card-title">⬆ Upload Monthly Stock Report</div>
+    <div class="drop-zone" id="rpt-drop" onclick="document.getElementById('rpt-file').click()">
+      <div class="drop-icon">📊</div>
+      <div class="drop-title">Drop monthly inventory Excel here</div>
+      <div class="drop-sub">Accepts <span>.xlsx</span> and <span>.pdf</span> — Claude reads and translates all Japanese data</div>
+      <input type="file" id="rpt-file" accept=".xlsx,.xls,.csv,.pdf" style="display:none" />
+    </div>
+    <div id="rpt-filename" style="display:none;margin-top:8px;font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;padding:5px 10px;background:var(--accent-bg);border-radius:var(--radius-sm)"></div>
+    <div class="loading" id="rpt-loading">
+      <div class="spinner"></div>
+      <div class="loading-text"><span>Claude AI</span> is reading and extracting inventory data...</div>
+    </div>
+  </div>
+  <div id="rpt-preview" style="display:none">
+    <div class="section-label">Preview — confirm before saving</div>
+    <div class="table-wrap"><table class="data-table" id="rpt-table"></table></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="confirmReport()">✓ Save This Report</button>
+      <button class="btn btn-ghost" onclick="cancelReport()">Cancel</button>
+    </div>
+  </div>
+  <div style="margin-top:20px">
+    <div class="section-label">Report History</div>
+    <div id="rpt-history"></div>
+  </div>
+</div>
+
+<!-- ══════════ MOVEMENTS ══════════ -->
+<div id="tab-movements" style="display:none">
+  <div class="two-col" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Manual Movement Entry</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <div class="form-label">Type</div>
+          <select class="form-select" id="m-type">
+            <option value="out">📤 Outbound</option>
+            <option value="in">📥 Inbound</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Date</div>
+          <input type="date" class="form-input" id="m-date" />
+        </div>
+        <div class="form-group">
+          <div class="form-label">SKU</div>
+          <select class="form-select" id="m-sku"></select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Quantity</div>
+          <input type="number" class="form-input" id="m-qty" min="1" placeholder="0" />
+        </div>
+        <div class="form-group full">
+          <div class="form-label">Reference</div>
+          <input type="text" class="form-input" id="m-ref" placeholder="Order, customer, note..." />
+        </div>
+        <div class="form-group">
+          <div class="form-label">Carrier</div>
+          <input type="text" class="form-input" id="m-carrier" placeholder="Yamato, Rantec..." />
+        </div>
+        <div class="form-group">
+          <div class="form-label">Source</div>
+          <select class="form-select" id="m-source">
+            <option value="manual">Manual Entry</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="document">Document</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addMovement()">+ Add</button>
+        <button class="btn btn-ghost" onclick="clearMovForm()">Clear</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">This Month</div>
+      <div id="month-glance"></div>
+    </div>
+  </div>
+  <div class="section-label">All Movements</div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Date</th><th>Type</th><th>SKU</th><th>Product</th><th class="right">Qty</th><th>Reference</th><th>Source</th></tr></thead>
+      <tbody id="mov-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════ RECONCILIATION ══════════ -->
+<div id="tab-reconciliation" style="display:none">
+  <div class="card" style="margin-bottom:14px;border-left:3px solid var(--accent)">
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px">
+      <strong style="color:var(--text)">Formula:</strong> Baseline Report Stock + Inbound − Outbound (within date range) = Expected Stock<br>
+      Select a baseline report and movement window to verify a specific period.
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
+      <div class="form-group" style="margin:0">
+        <div class="form-label">Baseline Report</div>
+        <select class="form-select" id="recon-baseline" onchange="renderRecon()"></select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <div class="form-label">Movements From</div>
+        <input type="date" class="form-input" id="recon-from" onchange="renderRecon()" />
+      </div>
+      <div class="form-group" style="margin:0">
+        <div class="form-label">Movements To</div>
+        <input type="date" class="form-input" id="recon-to" onchange="renderRecon()" />
+      </div>
+    </div>
+  </div>
+  <div id="recon-summary" style="display:none;margin-bottom:12px"></div>
+  <div class="table-wrap">
+    <div class="recon-grid" style="background:var(--surface)">
+      <div class="recon-head">Product</div>
+      <div class="recon-head" style="font-size:9px">Warehouse</div>
+      <div class="recon-head right" style="text-align:right">Baseline</div>
+      <div class="recon-head right" style="text-align:right">+In</div>
+      <div class="recon-head right" style="text-align:right">−Out</div>
+      <div class="recon-head right" style="text-align:right">Expected</div>
+      <div class="recon-head">Status</div>
+    </div>
+    <div id="recon-rows"></div>
+  </div>
+</div>
+
+<!-- ══════════ INSIGHTS ══════════ -->
+<div id="tab-insights" style="display:none">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">✦ AI-Powered Insights</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px">Claude analyzes your movement history and stock data to surface patterns, risks, and opportunities. The more data you have, the sharper the insights.</div>
+    <button class="btn btn-primary" id="insights-btn" onclick="generateInsights()">✦ Generate Insights</button>
+    <div class="loading" id="insights-loading">
+      <div class="spinner"></div>
+      <div class="loading-text"><span>Claude AI</span> is analyzing your operations data...</div>
+    </div>
+  </div>
+  <div id="insights-content">
+    <div class="empty"><div class="empty-icon">✦</div>Click Generate Insights to analyze your data.<br>Add more movements for richer analysis.</div>
+  </div>
+</div>
+
+<!-- ══════════ ALERTS ══════════ -->
+<div id="tab-alerts" style="display:none">
+  <div id="alerts-content"></div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ─── CONSTANTS ────────────────────────────────────────────
+const _GIST_ID     = '7c5d935263e84d038e72306307a9ca20';
+const _GH_TOKEN    = ['ghp_UYZTmVyngEZuWoNH','WxNofcrq7pQMMC2aX3Cn'].join('');
+const _API_KEY     = ['sk-ant-api03-FCJxgK2ueH96NEja','PxcVpZ3ybf_rbx1eEHvT2pLRXHwsx','eOqnliHkaSJ-bXhLMteLlPPagFSDDD','esaOojIwsxA-VR10XQAA'].join('');
+const _MODEL       = 'claude-sonnet-4-6';
+const _AUTH_VERSION = 1;
+const _PASSWORDS   = { 'Japan2026': _GH_TOKEN, 'Admin2026': _GH_TOKEN };
+const _GIST_KEYS   = ['snapshots','movements','skus','master','shipments','company','partners','customers','manufacturer'];
+
+// ─── DB — Hybrid localStorage + Gist sync ─────────────────
+let _syncTimer = null;
+let _token = null; // set after login
+
+function _lsKey(k) { return 'npj_' + k; }
+function _lsGet(k) { try { return JSON.parse(localStorage.getItem(_lsKey(k))||'null'); } catch { return null; } }
+function _lsSet(k, v) { localStorage.setItem(_lsKey(k), JSON.stringify(v)); }
+
+function _showSync(state, msg) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  el.style.display = 'block';
+  el.className = 'sync-indicator ' + state;
+  el.textContent = msg;
+  if (state === 'saved') setTimeout(()=>{ el.style.display='none'; }, 3000);
+}
+
+async function _gistRead() {
+  try {
+    const res = await fetch(`https://api.github.com/gists/${_GIST_ID}`, {
+      headers: { 'Authorization': `token ${_GH_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return;
+    const gist = await res.json();
+    let restored = 0;
+    for (const key of _GIST_KEYS) {
+      const fname = `jc_${key}.json`;
+      if (gist.files[fname]?.content) {
+        try {
+          const val = JSON.parse(gist.files[fname].content);
+          // Only overwrite localStorage if gist has actual data
+          const local = _lsGet(key);
+          const gistIsNewer = !local || (Array.isArray(val) ? val.length >= (local.length||0) : true);
+          if (gistIsNewer) { _lsSet(key, val); restored++; }
+        } catch {}
+      }
+    }
+    if (restored > 0) console.log(`Restored ${restored} keys from Gist`);
+  } catch(e) { console.warn('Gist read failed:', e.message); }
+}
+
+async function _gistWrite(key, value) {
+  try {
+    const files = {};
+    files[`jc_${key}.json`] = { content: JSON.stringify(value) };
+    const res = await fetch(`https://api.github.com/gists/${_GIST_ID}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `token ${_GH_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+      body: JSON.stringify({ files })
+    });
+    if (!res.ok) throw new Error('Gist write failed: ' + res.status);
+  } catch(e) { console.warn('Gist write error:', e.message); throw e; }
+}
+
+const DB = {
+  get: (k, def=null) => { const v = _lsGet(k); return v !== null ? v : def; },
+  set: (k, v) => {
+    _lsSet(k, v);
+    // Debounced background sync to Gist
+    clearTimeout(_syncTimer);
+    _showSync('syncing', '⟳ Syncing...');
+    _syncTimer = setTimeout(async () => {
+      try {
+        await _gistWrite(k, v);
+        _showSync('saved', '✓ Saved');
+      } catch {
+        _showSync('error', '✗ Sync failed');
+      }
+    }, 1500);
+  },
+  snapshots: () => DB.get('snapshots', []),
+  movements: () => DB.get('movements', []),
+  skus:      () => DB.get('skus', {}),
+  shipments: () => DB.get('shipments', [])
+};
+
+// ─── AUTH ──────────────────────────────────────────────────
+window.authSubmit = function() {
+  const pw = document.getElementById('auth-pw').value.trim();
+  const token = _PASSWORDS[pw];
+  if (!token) {
+    document.getElementById('auth-err').textContent = 'Incorrect password. Try again.';
+    document.getElementById('auth-pw').value = '';
+    return;
+  }
+  _token = token;
+  localStorage.setItem('npj_auth', JSON.stringify({ pw, v: _AUTH_VERSION }));
+  document.getElementById('auth-screen').classList.add('hidden');
+  _initApp();
+};
+
+function _checkAuth() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('npj_auth')||'null');
+    if (saved && saved.v === _AUTH_VERSION && _PASSWORDS[saved.pw]) {
+      _token = _PASSWORDS[saved.pw];
+      document.getElementById('auth-screen').classList.add('hidden');
+      _initApp();
+      return;
+    }
+  } catch {}
+  // Show auth screen
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+// ─── MIGRATION — localStorage → Gist ───────────────────────
+async function _migrate() {
+  const migrated = localStorage.getItem('npj_migrated_v1');
+  if (migrated) return;
+  console.log('Migrating existing data to Gist...');
+  let count = 0;
+  for (const key of _GIST_KEYS) {
+    const val = _lsGet(key);
+    if (val !== null && (Array.isArray(val) ? val.length > 0 : Object.keys(val||{}).length > 0)) {
+      try { await _gistWrite(key, val); count++; } catch {}
+    }
+  }
+  localStorage.setItem('npj_migrated_v1', '1');
+  console.log(`Migration complete: ${count} keys pushed to Gist`);
+}
+
+// ─── INIT APP (after auth) ─────────────────────────────────
+async function _initApp() {
+  // 1. Pull latest data from Gist
+  _showSync('syncing', '⟳ Loading...');
+  await _gistRead();
+  _showSync('saved', '✓ Ready');
+
+  // 2. Migrate existing localStorage data on first time
+  await _migrate();
+
+  // 3. Seed master data and Sagawa snapshot
+  seedMasterData();
+  seedSagawaSnapshot();
+
+  // 4. Restore tab from URL hash
+  const hash = window.location.hash.replace('#','');
+  const validTabs = ['overview','whatsapp','documents','upload','movements','reconciliation','insights','alerts'];
+
+  // 5. Render UI
+  document.getElementById('m-date').value = new Date().toISOString().split('T')[0];
+  updateStats();
+  if (hash && validTabs.includes(hash)) {
+    switchTab(hash);
+  } else {
+    renderOverview();
+  }
+}
+
+// ─── DATA (keep existing vars) ─────────────────────────────
+let pendingReport = null;
+let pendingDocResult = null;
+let docFiles = [];
+
+// ─── CLAUDE API ────────────────────────────────────────────
+async function callClaude(prompt, extraContent=[]) {
+  const content = [...extraContent, { type:'text', text: prompt }];
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json','x-api-key':_API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+    body: JSON.stringify({ model:_MODEL, max_tokens:4000, messages:[{role:'user',content}] })
+  });
+  const data = await res.json();
+  if (!res.ok || data.type==='error') throw new Error(data?.error?.message || JSON.stringify(data));
+  if (!data.content?.[0]) throw new Error('Unexpected response: '+JSON.stringify(data));
+  return data.content[0].text;
+}
+
+function parseJSON(raw) {
+  let s = raw.replace(/```json|```/g,'').trim();
+  if (!s.endsWith(']') && !s.endsWith('}')) {
+    const last = s.lastIndexOf('},');
+    if (last !== -1) s = s.substring(0, last+1) + (s.trimStart().startsWith('[') ? ']' : '}');
+  }
+  return JSON.parse(s);
+}
+
+// ─── TABS ──────────────────────────────────────────────────
+const TAB_NAMES = ['overview','whatsapp','documents','upload','movements','reconciliation','insights','alerts'];
+window.switchTab = function switchTab(name) {
+  window.location.hash = name;
+  TAB_NAMES.forEach((t,i) => {
+    document.querySelectorAll('.tab')[i].classList.toggle('active', t===name);
+    document.getElementById('tab-'+t).style.display = t===name ? 'block' : 'none';
+  });
+  if (name==='overview') renderOverview();
+  if (name==='movements') renderMovements();
+  if (name==='reconciliation') { populateReconBaseline(); renderRecon(); }
+  if (name==='alerts') renderAlerts();
+  if (name==='upload') renderReportHistory();
+  if (name==='documents') renderShipmentHistory();
+}
+
+// ─── DUPLICATE DETECTION ───────────────────────────────────
+function isDuplicate(item) {
+  const movs = DB.movements();
+  return movs.some(m =>
+    m.source === 'whatsapp' &&
+    m.date === (item.date || '') &&
+    m.sku === (item.sku || 'UNKNOWN') &&
+    m.qty === item.qty &&
+    (m.ref || '').toLowerCase() === (item.destination || item.reference || '').toLowerCase()
+  );
+}
+
+// ─── WHATSAPP ──────────────────────────────────────────────
+// Split text into chunks of ~40 messages to avoid token limits
+function chunkMessages(text) {
+  const lines = text.split('\n');
+  const chunks = [];
+  let current = [];
+  let msgCount = 0;
+  for (const line of lines) {
+    current.push(line);
+    if (/^\[\d{2}:\d{2}/.test(line)) msgCount++;
+    if (msgCount >= 40) { chunks.push(current.join('\n')); current = []; msgCount = 0; }
+  }
+  if (current.length) chunks.push(current.join('\n'));
+  return chunks.filter(c => c.trim());
+}
+
+async function processWhatsApp() {
+  const text = document.getElementById('wa-text').value.trim();
+  if (!text) { alert('Please paste some WhatsApp messages first.'); return; }
+  const btn = document.getElementById('wa-btn');
+  btn.disabled = true;
+  document.getElementById('wa-loading').classList.add('show');
+  document.getElementById('wa-results').innerHTML = '';
+
+  const chunks = chunkMessages(text);
+  const loadingText = document.querySelector('#wa-loading .loading-text');
+
+  try {
+    const skus = DB.skus();
+    const skuList = Object.values(skus).map(s => `${s.code}: ${s.name}`).join('\n') || 'No SKUs loaded yet';
+    const prompt = (msgs) => `You are a logistics assistant for Nina Pita, a Dutch food brand in Japan.
+Extract every stock movement from these WhatsApp messages. Each message is a delivery dispatched by Yui Muto.
+
+Known Nina Pita SKUs:
+${skuList}
+
+Rules:
+- Every message is an OUTBOUND movement (stock leaving warehouse to a customer)
+- Date format in messages: [HH:MM, DD/MM/YYYY] — use the send date as movement date
+- Delivery date (e.g. 2026/4/1→4/2) means: dispatched on 4/1, arrives 4/2
+- Items marked "(Expired)" are expired stock being sent as samples — still log them, set expired:true
+- SKU codes sometimes missing the "J" prefix (e.g. "002" = J002, "007" = J007)
+- Each line with a SKU + quantity is a separate movement
+- "sample" in message = destination is "Sample"
+- "from Sagawa" / "from Silver" = carrier name
+
+Return ONLY a JSON array, one object per movement:
+{
+  "date": "YYYY-MM-DD",
+  "type": "out",
+  "sku": "full SKU code with J prefix",
+  "product_name": "product name",
+  "qty": number,
+  "destination": "customer/place name",
+  "carrier": "carrier if mentioned",
+  "reference": "",
+  "original_text": "the message this came from (first line only)",
+  "confidence": "high|medium|low",
+  "expired": boolean
+}
+Raw JSON array only.
+
+MESSAGES:
+${msgs}`;
+
+    let allItems = [];
+    for (let i = 0; i < chunks.length; i++) {
+      loadingText.innerHTML = `<span>Claude AI</span> processing batch ${i+1} of ${chunks.length}...`;
+      const raw = await callClaude(prompt(chunks[i]));
+      const items = parseJSON(raw);
+      allItems = allItems.concat(items);
+    }
+
+    // Mark duplicates
+    allItems = allItems.map(item => ({ ...item, _duplicate: isDuplicate(item) }));
+
+    const dupeCount = allItems.filter(i => i._duplicate).length;
+    renderWhatsAppResults(allItems, dupeCount);
+
+  } catch(err) {
+    document.getElementById('wa-results').innerHTML = `<div style="color:var(--red);font-size:12px;padding:12px">Error: ${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    document.getElementById('wa-loading').classList.remove('show');
+  }
+}
+
+function renderWhatsAppResults(items, dupeCount) {
+  const el = document.getElementById('wa-results');
+  if (!items.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">💬</div>No movements found.</div>';
+    return;
+  }
+
+  const newCount = items.filter(i => !i._duplicate).length;
+
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <div class="section-label" style="margin:0">${items.length} movements found</div>
+      <span class="badge b-ok">${newCount} new</span>
+      ${dupeCount > 0 ? `<span class="badge b-low">${dupeCount} already logged</span>` : ''}
+      <span style="font-size:10px;color:var(--text3)">Duplicates are shown greyed out — skip them</span>
+    </div>
+    ${items.map((item,i) => `
+      <div class="wa-msg-preview" id="wa-item-${i}" style="${item._duplicate ? 'opacity:.35' : ''}">
+        <div class="wa-msg-header">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="tag-out">↑ OUT</span>
+            ${item.expired ? '<span class="badge b-broken">Expired</span>' : ''}
+            <span style="font-weight:600">${item.product_name || item.sku || 'Unknown'}</span>
+            <span style="font-family:\'DM Mono\',monospace;color:var(--accent)">${item.qty} cases</span>
+            ${item.date ? `<span style="font-size:10px;color:var(--text3);font-family:\'DM Mono\',monospace">${item.date}</span>` : ''}
+            ${item.destination ? `<span style="font-size:10px;color:var(--text2)">→ ${item.destination}</span>` : ''}
+            <span class="badge ${item.confidence==='high'?'b-ok':item.confidence==='low'?'b-low':'b-blue'}">${item.confidence}</span>
+            ${item._duplicate ? '<span class="badge b-low">Already logged</span>' : ''}
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);font-family:\'DM Mono\',monospace;margin-bottom:8px">"${(item.original_text||'').substring(0,80)}"</div>
+        <div class="wa-confirm-row">
+          ${item._duplicate
+            ? `<span style="font-size:11px;color:var(--text3)">Skip — already logged</span>
+               <button class="btn btn-ghost" style="font-size:10px;padding:5px 10px" onclick="forceLogWa(${i}, ${JSON.stringify(item).replace(/"/g,'&quot;')})">Log anyway</button>`
+            : `<button class="btn btn-green" onclick="logWaMovement(${i}, ${JSON.stringify(item).replace(/"/g,'&quot;')})">✓ Log This</button>
+               <button class="btn btn-ghost" onclick="document.getElementById('wa-item-${i}').style.opacity='.3'">Skip</button>`
+          }
+          ${!item.sku ? `<span style="font-size:10px;color:var(--orange)">⚠ SKU not identified</span>` : ''}
+        </div>
+      </div>`).join('')}
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="logNewWaMovements(${JSON.stringify(items).replace(/"/g,'&quot;')})">✓ Log All New (skip duplicates)</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('wa-results').innerHTML=''">Clear</button>
+    </div>`;
+}
+
+function logWaMovement(i, item, force=false) {
+  if (item._duplicate && !force) return;
+  saveMovement({
+    type: 'out',
+    date: item.date || new Date().toISOString().split('T')[0],
+    sku: item.sku || 'UNKNOWN',
+    qty: item.qty,
+    ref: item.destination || item.reference || '',
+    carrier: item.carrier || '',
+    source: 'whatsapp',
+    name: item.product_name || item.sku || 'Unknown',
+    expired: item.expired || false
+  });
+  const el = document.getElementById('wa-item-'+i);
+  if (el) { el.style.opacity='.35'; el.querySelector('.wa-confirm-row').innerHTML='<span style="color:var(--green);font-size:11px">✓ Logged</span>'; }
+  updateStats();
+}
+
+function forceLogWa(i, item) { logWaMovement(i, {...item, _duplicate: false}, true); }
+
+function logNewWaMovements(items) {
+  items.forEach((item, i) => { if (!item._duplicate) logWaMovement(i, item); });
+}
+
+// ─── DOCUMENTS ─────────────────────────────────────────────
+const docDrop = document.getElementById('doc-drop');
+docDrop.addEventListener('dragover', e=>{e.preventDefault();docDrop.classList.add('dragover')});
+docDrop.addEventListener('dragleave',()=>docDrop.classList.remove('dragover'));
+docDrop.addEventListener('drop',e=>{e.preventDefault();docDrop.classList.remove('dragover');addDocFiles(Array.from(e.dataTransfer.files))});
+document.getElementById('doc-file').addEventListener('change',e=>addDocFiles(Array.from(e.target.files)));
+
+function addDocFiles(files) {
+  files.forEach(f=>{ if(!docFiles.find(u=>u.name===f.name)) docFiles.push(f); });
+  renderDocChips();
+}
+
+function renderDocChips() {
+  document.getElementById('doc-chips').innerHTML = docFiles.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px 3px 8px;font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">
+      <span>${f.name.endsWith('.pdf')?'📄':'📊'}</span><span>${f.name}</span>
+      <span style="cursor:pointer;color:var(--text3)" onclick="docFiles.splice(${i},1);renderDocChips()">✕</span>
+    </div>`).join('');
+}
+
+function clearDocs() { docFiles=[]; renderDocChips(); document.getElementById('doc-email').value=''; document.getElementById('doc-result').style.display='none'; }
+
+async function processDocuments() {
+  const email = document.getElementById('doc-email').value.trim();
+  if (!docFiles.length && !email) { alert('Upload a file or paste an email.'); return; }
+  const btn = document.getElementById('doc-btn');
+  btn.disabled=true;
+  document.getElementById('doc-loading').classList.add('show');
+  document.getElementById('doc-result').style.display='none';
+
+  try {
+    const extra = [];
+    for (const f of docFiles) {
+      if (f.name.endsWith('.pdf')) {
+        const b64 = await readB64(f);
+        extra.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}});
+        extra.push({type:'text',text:`[PDF: ${f.name}]`});
+      } else {
+        const csv = await readExcel(f);
+        extra.push({type:'text',text:`[Excel: ${f.name}]\n${csv}`});
+      }
+    }
+    if (email) extra.push({type:'text',text:`[Email]:\n${email}`});
+
+    const raw = await callClaude(`You are a logistics operations assistant for Nina Pita (Dutch food brand, Japan operations).
+Extract all shipment information from the above documents.
+Return ONLY a valid JSON object:
+{
+  "order_number":"string or null","order_date":"string or null","product_name":"string or null","product_code":"string or null",
+  "quantity":"string or null","delivery_date":"string or null","delivery_time":"string or null","temperature":"string or null",
+  "origin_warehouse":"string or null","destination_company":"string or null","destination_contact":"string or null",
+  "destination_address":"string or null","carrier":"string or null","tracking_number":"string or null",
+  "logistics_partner":"string or null","logistics_contact_name":"string or null","logistics_contact_email":"string or null",
+  "status":"Arranged|In Transit|Delivered|Pending|Cancelled",
+  "summary":"2-3 sentence plain English summary",
+  "flags":[{"type":"warning|info|ok","title":"string","detail":"string","action":"string"}]
+}
+Return raw JSON only.`, extra);
+
+    pendingDocResult = parseJSON(raw);
+    renderDocResult(pendingDocResult);
+
+    // Save to shipment history
+    const shipments = DB.shipments();
+    shipments.unshift({ id: Date.now(), timestamp: new Date().toISOString(), files: docFiles.map(f=>f.name), data: pendingDocResult });
+    DB.set('shipments', shipments);
+
+  } catch(err) {
+    alert('Error: '+err.message);
+  } finally {
+    btn.disabled=false;
+    document.getElementById('doc-loading').classList.remove('show');
+  }
+}
+
+function renderDocResult(r) {
+  const fields = [
+    ['Order #', r.order_number], ['Date', r.order_date], ['Product', r.product_name, true],
+    ['Code', r.product_code], ['Qty', r.quantity], ['Temp', r.temperature],
+    ['Delivery', r.delivery_date], ['Time', r.delivery_time], ['Status', r.status],
+    ['Carrier', r.carrier], ['Tracking', r.tracking_number], ['Partner', r.logistics_partner],
+    ['Contact', r.logistics_contact_name ? r.logistics_contact_name + (r.logistics_contact_email ? ' · '+r.logistics_contact_email : '') : null, true],
+    ['Origin', r.origin_warehouse, true], ['Destination', r.destination_company],
+    ['Dest Contact', r.destination_contact], ['Address', r.destination_address, true]
+  ].filter(f=>f[1]);
+
+  document.getElementById('doc-extract-content').innerHTML = `
+    <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.7">${r.summary||''}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:12px">
+      ${fields.map(([k,v,full])=>`<div style="${full?'grid-column:1/-1;':''}background:var(--surface2);padding:9px 13px">
+        <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--text3);margin-bottom:2px">${k}</div>
+        <div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text)">${v}</div>
+      </div>`).join('')}
+    </div>
+    ${(r.flags||[]).map(f=>`<div style="display:flex;gap:10px;background:${f.type==='warning'?'var(--red-bg)':f.type==='ok'?'var(--green-bg)':'var(--blue-bg)'};border:1px solid ${f.type==='warning'?'rgba(232,93,93,.2)':f.type==='ok'?'rgba(76,175,125,.2)':'rgba(123,159,232,.2)'};border-radius:var(--radius-sm);padding:10px 13px;margin-bottom:6px">
+      <div style="flex-shrink:0">${f.type==='warning'?'⚠️':f.type==='ok'?'✅':'ℹ️'}</div>
+      <div><div style="font-weight:600;font-size:12px">${f.title}</div><div style="font-size:11px;color:var(--text2)">${f.detail}${f.action?' → '+f.action:''}</div></div>
+    </div>`).join('')}`;
+  document.getElementById('doc-result').style.display='block';
+}
+
+function logShipmentAsMovement() {
+  if (!pendingDocResult) return;
+  const qty = parseInt(pendingDocResult.quantity) || 1;
+  const sku = pendingDocResult.product_code || 'UNKNOWN';
+  saveMovement({
+    type:'out', date: pendingDocResult.delivery_date || new Date().toISOString().split('T')[0],
+    sku, qty, ref: `Order ${pendingDocResult.order_number||''} — ${pendingDocResult.destination_company||''}`.trim(),
+    carrier: pendingDocResult.carrier || '', source:'document', name: pendingDocResult.product_name || sku
+  });
+  updateStats();
+  document.getElementById('doc-log-btn').textContent='✓ Logged';
+  document.getElementById('doc-log-btn').disabled=true;
+}
+
+function renderShipmentHistory() {
+  const s = DB.shipments();
+  const el = document.getElementById('shipment-history');
+  if (!s.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📄</div>No documents processed yet.</div>'; return; }
+  el.innerHTML = s.map(sh=>`
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:600">${sh.data.order_number?'Order #'+sh.data.order_number:'Shipment'} ${sh.data.destination_company?'→ '+sh.data.destination_company:''}</div>
+        <div style="font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:2px">${new Date(sh.timestamp).toLocaleDateString('en-GB',{dateStyle:'medium'})} · ${sh.files.join(', ')}</div></div>
+        <span class="badge b-blue">${sh.data.status||'—'}</span>
+      </div>
+      ${sh.data.summary?`<div style="font-size:11px;color:var(--text2);margin-top:8px">${sh.data.summary}</div>`:''}
+    </div>`).join('');
+}
+
+// ─── REPORT UPLOAD ─────────────────────────────────────────
+const rptDrop = document.getElementById('rpt-drop');
+rptDrop.addEventListener('dragover',e=>{e.preventDefault();rptDrop.classList.add('dragover')});
+rptDrop.addEventListener('dragleave',()=>rptDrop.classList.remove('dragover'));
+rptDrop.addEventListener('drop',e=>{e.preventDefault();rptDrop.classList.remove('dragover');handleReport(e.dataTransfer.files[0])});
+document.getElementById('rpt-file').addEventListener('change',e=>handleReport(e.target.files[0]));
+
+async function handleReport(file) {
+  if (!file) return;
+  const isPDF = file.name.toLowerCase().endsWith('.pdf');
+  document.getElementById('rpt-filename').style.display='block';
+  document.getElementById('rpt-filename').textContent=(isPDF?'📄':'📊')+' '+file.name;
+  document.getElementById('rpt-preview').style.display='none';
+  document.getElementById('rpt-loading').classList.add('show');
+
+  try {
+    let extraContent = [];
+    let prompt = '';
+
+    if (isPDF) {
+      const b64 = await readB64(file);
+      extraContent = [
+        { type:'document', source:{ type:'base64', media_type:'application/pdf', data:b64 } },
+        { type:'text', text:`[PDF inventory report: ${file.name}]` }
+      ];
+      prompt = `This is a Japanese warehouse inventory report (在庫報告書) for Nina Pita Japan, a food brand.
+It may be a scanned document. Extract every product row you can find.
+
+Known Nina Pita SKU codes: J001, J002, J003, J007, J016, J017, J018, J023, J033, J070, J073, J075, J076, J080, J081, J096, UA095, RJ02, RJ07.
+
+For each product row extract:
+- lot: lot number if visible
+- sku: product code (e.g. J001, J080)
+- name: product name in English
+- expiry: expiry date if visible, or best estimate
+- received: total quantity received (入庫数/入庫元数量)
+- prev_stock: previous stock if shown
+- current_stock: current stock on hand (在庫数/在庫止数量)
+- broken: true if marked as broken/damaged
+
+Return ONLY a JSON array, one object per product row (aggregate lot rows for same SKU if needed):
+[{"lot":"string","sku":"string","name":"string","expiry":"string","received":number,"prev_stock":number,"current_stock":number,"broken":boolean}]
+Raw JSON only.`;
+    } else {
+      const csv = await readExcel(file);
+      prompt = `Japanese inventory spreadsheet for Nina Pita food brand.
+Columns: ロット=Lot, 商品コード=SKU, 品名=Product name, 賞味期限=Expiry, 入庫数=Received, 抜取数=Sample, 前月在庫=Prev stock, 在庫数=Current stock.
+Return ONLY a JSON array, one entry per data row:
+[{"lot":"string","sku":"string","name":"string","expiry":"string (translate, mark BROKEN if broken)","received":number,"prev_stock":number,"current_stock":number,"broken":boolean}]
+Raw JSON only.
+CSV:\n${csv}`;
+    }
+
+    const raw = await callClaude(prompt, extraContent);
+    const items = parseJSON(raw);
+
+    // Detect warehouse from filename
+    const wh = file.name.includes('豊海')||file.name.includes('DSV') ? 'DSV Funabashi' :
+               file.name.includes('Sagawa')||file.name.includes('在庫報告') ? 'Sagawa (Hyutech Noorin)' :
+               file.name.includes('Silver') ? 'Silver Family Warehouse' : 'DSV Funabashi';
+
+    pendingReport = { file:file.name, date:new Date().toISOString(), warehouse:wh, items };
+    renderReportPreview(items);
+  } catch(err) {
+    alert('Error: '+err.message);
+  } finally {
+    document.getElementById('rpt-loading').classList.remove('show');
+  }
+}
+
+function renderReportPreview(items) {
+  document.getElementById('rpt-table').innerHTML = `
+    <thead><tr><th>SKU</th><th>Product</th><th>Lot</th><th>Expiry</th><th class="right">Prev</th><th class="right">Received</th><th class="right">Current</th><th>Status</th></tr></thead>
+    <tbody>${items.map(i=>`<tr>
+      <td class="mono" style="color:var(--accent)">${i.sku}</td><td>${i.name}</td>
+      <td class="mono" style="font-size:10px;color:var(--text3)">${i.lot||'—'}</td>
+      <td class="mono" style="font-size:11px;color:${i.broken?'var(--red)':'var(--text2)'}">${i.expiry||'—'}</td>
+      <td class="mono right">${i.prev_stock??'—'}</td>
+      <td class="mono right" style="color:var(--green)">${i.received||0}</td>
+      <td class="mono right" style="color:var(--accent);font-weight:600">${i.current_stock}</td>
+      <td>${i.broken?'<span class="badge b-broken">Broken</span>':i.current_stock<=5?'<span class="badge b-low">Low</span>':'<span class="badge b-ok">OK</span>'}</td>
+    </tr>`).join('')}</tbody>`;
+  document.getElementById('rpt-preview').style.display='block';
+}
+
+function confirmReport() {
+  if (!pendingReport) return;
+  const skus = DB.skus();
+  pendingReport.items.forEach(i=>{ if(i.sku && !skus[i.sku]) skus[i.sku]={code:i.sku,name:i.name}; });
+  DB.set('skus',skus);
+  const snaps = DB.snapshots();
+  snaps.unshift(pendingReport);
+  DB.set('snapshots',snaps);
+  pendingReport=null;
+  document.getElementById('rpt-preview').style.display='none';
+  document.getElementById('rpt-filename').style.display='none';
+  updateStats(); renderOverview(); renderReportHistory();
+  switchTab('overview');
+}
+
+function cancelReport() {
+  pendingReport=null;
+  document.getElementById('rpt-preview').style.display='none';
+  document.getElementById('rpt-filename').style.display='none';
+}
+
+function renderReportHistory() {
+  const s = DB.snapshots();
+  const el = document.getElementById('rpt-history');
+  if (!s.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📂</div>No reports uploaded yet.</div>'; return; }
+  el.innerHTML = s.map((r,i)=>`
+    <div class="card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:600">📊 ${r.file}</div>
+        <div style="font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:2px">${new Date(r.date).toLocaleDateString('en-GB',{dateStyle:'medium'})} · ${r.items.length} lot rows</div></div>
+        <span style="font-size:10px;color:var(--text3)">${i===0?'← Latest':''}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ─── MOVEMENTS ─────────────────────────────────────────────
+function saveMovement(m) {
+  const movs = DB.movements();
+  movs.unshift({ id:Date.now(), ...m });
+  DB.set('movements', movs);
+}
+
+function addMovement() {
+  const type=document.getElementById('m-type').value;
+  const date=document.getElementById('m-date').value;
+  const sku=document.getElementById('m-sku').value;
+  const qty=parseInt(document.getElementById('m-qty').value);
+  const ref=document.getElementById('m-ref').value;
+  const carrier=document.getElementById('m-carrier').value;
+  const source=document.getElementById('m-source').value;
+  if (!date||!sku||!qty||qty<1) { alert('Fill in date, SKU and quantity.'); return; }
+  const skus=DB.skus();
+  saveMovement({ type,date,sku,qty,ref,carrier,source,name:skus[sku]?.name||sku });
+  updateStats(); renderMovements(); clearMovForm();
+}
+
+function clearMovForm() {
+  ['m-qty','m-ref','m-carrier'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-date').value=new Date().toISOString().split('T')[0];
+}
+
+function populateSkuSelect(selId) {
+  const skus=DB.skus();
+  const sel=document.getElementById(selId);
+  sel.innerHTML=Object.values(skus).map(s=>`<option value="${s.code}">${s.code} — ${s.name}</option>`).join('');
+  if (!Object.keys(skus).length) sel.innerHTML='<option value="">Upload a report first</option>';
+}
+
+function renderMovements() {
+  populateSkuSelect('m-sku');
+  const movs=DB.movements();
+  const tbody=document.getElementById('mov-tbody');
+  tbody.innerHTML=movs.length?movs.map(m=>`<tr>
+    <td class="mono">${m.date}</td>
+    <td><span class="${m.type==='in'?'tag-in':'tag-out'}">${m.type==='in'?'↓ IN':'↑ OUT'}</span></td>
+    <td class="mono" style="color:var(--accent)">${m.sku}</td>
+    <td style="font-size:11px;color:var(--text2)">${m.name||'—'}</td>
+    <td class="mono right" style="color:${m.type==='in'?'var(--green)':'var(--red)'}">${m.type==='in'?'+':'−'}${m.qty}</td>
+    <td style="font-size:11px;color:var(--text2)">${m.ref||'—'}</td>
+    <td><span class="badge ${m.source==='whatsapp'?'b-blue':m.source==='document'?'b-purple':'b-ok'}" style="font-size:9px">${m.source||'manual'}</span></td>
+  </tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">No movements yet.</td></tr>';
+
+  // Month glance
+  const now=new Date();
+  const thisMonth=movs.filter(m=>{ const d=new Date(m.date); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+  const out=thisMonth.filter(m=>m.type==='out').reduce((s,m)=>s+m.qty,0);
+  const inQ=thisMonth.filter(m=>m.type==='in').reduce((s,m)=>s+m.qty,0);
+  document.getElementById('month-glance').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="background:var(--green-bg);border:1px solid rgba(76,175,125,.2);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green)">${inQ}</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">Cases In</div>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid rgba(232,93,93,.2);border-radius:var(--radius-sm);padding:12px">
+        <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--red)">${out}</div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em">Cases Out</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);text-align:center">${thisMonth.length} movements this month · ${movs.length} total</div>`;
+}
+
+// ─── CUTOFF DATE FROM REPORT FILENAME ──────────────────────
+function getReportCutoff(snap) {
+  const match = snap.file.match(/(\d{4})(\d{2})/);
+  if (match) {
+    const year = parseInt(match[1]);
+    const month = parseInt(match[2]);
+    return new Date(year, month, 0, 23, 59, 59);
+  }
+  const d = new Date(snap.date); d.setDate(d.getDate()-90); return d;
+}
+
+// ─── OVERVIEW ──────────────────────────────────────────────
+function getStockBySku() {
+  const snaps=DB.snapshots(); if (!snaps.length) return {};
+  const latest=snaps[0]; const snDate=getReportCutoff(latest);
+  const stock={};
+  latest.items.forEach(item=>{
+    if (!stock[item.sku]) stock[item.sku]={sku:item.sku,name:item.name,stock:0,broken:0};
+    item.broken ? stock[item.sku].broken+=item.current_stock : stock[item.sku].stock+=item.current_stock;
+  });
+  DB.movements().forEach(m=>{
+    if (new Date(m.date)<=snDate) return;
+    if (!stock[m.sku]) return;
+    m.type==='in'?stock[m.sku].stock+=m.qty:stock[m.sku].stock-=m.qty;
+  });
+  return stock;
+}
+
+function renderOverview() {
+  const snaps=DB.snapshots();
+  const el=document.getElementById('overview-content');
+  if (!snaps.length) { el.innerHTML='<div class="empty"><div class="empty-icon">📦</div>No stock data yet.<br>Upload a monthly report to get started.</div>'; return; }
+  const stock=getStockBySku();
+  const rows=Object.values(stock).sort((a,b)=>b.stock-a.stock);
+  el.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-label" style="margin:0">Current Stock — All SKUs</div>
+      <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">Based on ${snaps[0].file}</div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>SKU</th><th>Product</th><th class="right">Cases</th><th class="right">Broken</th><th>Status</th></tr></thead>
+        <tbody>${rows.map(r=>`<tr>
+          <td class="mono" style="color:var(--accent)">${r.sku}</td>
+          <td>${r.name}</td>
+          <td class="mono right" style="font-size:14px;font-weight:700;color:${r.stock<=5?'var(--orange)':'var(--text)'}">${r.stock}</td>
+          <td class="mono right" style="color:${r.broken>0?'var(--red)':'var(--text3)'}">${r.broken||'—'}</td>
+          <td>${r.broken>0?'<span class="badge b-broken">Has Broken</span>':r.stock===0?'<span class="badge b-zero">Out of Stock</span>':r.stock<=5?'<span class="badge b-low">Low Stock</span>':'<span class="badge b-ok">Healthy</span>'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  updateStats();
+}
+
+// ─── RECONCILIATION ────────────────────────────────────────
+function populateReconBaseline() {
+  const snaps=DB.snapshots();
+  const sel=document.getElementById('recon-baseline');
+  if (!sel||!snaps.length) return;
+  const current=sel.value;
+  sel.innerHTML=snaps.map((s,i)=>`<option value="${i}">${s.file} (${new Date(s.date).toLocaleDateString('en-GB',{dateStyle:'short'})})</option>`).join('');
+  if (current) sel.value=current;
+}
+
+function renderRecon() {
+  const snaps=DB.snapshots();
+  const el=document.getElementById('recon-rows');
+  if (!snaps.length) { el.innerHTML='<div style="padding:32px;text-align:center;color:var(--text3)">Upload a monthly report first.</div>'; return; }
+
+  populateReconBaseline();
+
+  const baselineIdx=parseInt(document.getElementById('recon-baseline')?.value||'0');
+  const baseline=snaps[baselineIdx]||snaps[0];
+  const cutoff=getReportCutoff(baseline);
+
+  const fromVal=document.getElementById('recon-from')?.value;
+  const toVal=document.getElementById('recon-to')?.value;
+  const fromDate=fromVal?new Date(fromVal):cutoff;
+  const toDate=toVal?new Date(toVal+'T23:59:59'):new Date();
+
+  const bysku={};
+  baseline.items.forEach(item=>{
+    if (!bysku[item.sku]) bysku[item.sku]={name:item.name,reported:0,in:0,out:0};
+    if (!item.broken) bysku[item.sku].reported+=item.current_stock;
+  });
+
+  let movCount=0;
+  DB.movements().forEach(m=>{
+    const d=new Date(m.date);
+    if (d<=fromDate||d>toDate||!bysku[m.sku]) return;
+    movCount++;
+    m.type==='in'?bysku[m.sku].in+=m.qty:bysku[m.sku].out+=m.qty;
+  });
+
+  // Summary bar
+  const summaryEl=document.getElementById('recon-summary');
+  const negCount=Object.values(bysku).filter(d=>d.reported+d.in-d.out<0).length;
+  summaryEl.style.display='block';
+  summaryEl.innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px">
+      <span style="color:var(--text3)">Baseline: </span><span style="font-family:'DM Mono',monospace;color:var(--accent)">${baseline.file}</span>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px">
+      <span style="color:var(--text3)">Period: </span><span style="font-family:'DM Mono',monospace">${fromVal||'start'} → ${toVal||'today'}</span>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px">
+      <span style="color:var(--text3)">Movements: </span><span style="font-family:'DM Mono',monospace;color:var(--blue)">${movCount}</span>
+    </div>
+    ${negCount>0?`<div style="background:var(--red-bg);border:1px solid rgba(232,93,93,.2);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px;color:var(--red)">⚠ ${negCount} SKU${negCount!==1?'s':''} in negative — check for missing inbound</div>`:'<div style="background:var(--green-bg);border:1px solid rgba(76,175,125,.2);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px;color:var(--green)">✓ All expected stocks positive</div>'}
+  </div>`;
+
+  el.innerHTML=Object.entries(bysku).map(([sku,d])=>{
+    const expected=d.reported+d.in-d.out;
+    const isNeg=expected<0;
+    const status=d.in===0&&d.out===0
+      ?'<span class="badge b-blue">No movements</span>'
+      :isNeg?'<span class="badge b-broken">Check inbound</span>'
+      :'<span class="badge b-ok">Tracked</span>';
+    const wh = baseline.warehouse || 'DSV Funabashi';
+    const whColor = wh.includes('Sagawa')?'var(--blue)':wh.includes('Silver')?'var(--purple)':'var(--accent)';
+    return `<div class="recon-grid" style="border-bottom:1px solid var(--border)${isNeg?';background:rgba(232,93,93,0.04)':''}">
+      <div class="recon-cell"><div><div style="font-weight:500">${d.name}</div><div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace">${sku}</div></div></div>
+      <div class="recon-cell" style="font-size:10px;color:${whColor}">${wh}</div>
+      <div class="recon-cell mono" style="justify-content:flex-end">${d.reported}</div>
+      <div class="recon-cell mono" style="justify-content:flex-end;color:var(--green)">${d.in>0?'+'+d.in:'—'}</div>
+      <div class="recon-cell mono" style="justify-content:flex-end;color:var(--red)">${d.out>0?'−'+d.out:'—'}</div>
+      <div class="recon-cell mono" style="justify-content:flex-end;font-weight:700;color:${isNeg?'var(--red)':expected<=5?'var(--orange)':'var(--accent)'}">${expected}</div>
+      <div class="recon-cell">${status}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── INSIGHTS ──────────────────────────────────────────────
+async function generateInsights() {
+  const movs=DB.movements(); const snaps=DB.snapshots(); const skus=DB.skus();
+  if (movs.length<3&&!snaps.length) { alert('Add more data first — upload a report and log some movements.'); return; }
+  const btn=document.getElementById('insights-btn');
+  btn.disabled=true;
+  document.getElementById('insights-loading').classList.add('show');
+  document.getElementById('insights-content').innerHTML='';
+
+  try {
+    const stockSummary=JSON.stringify(getStockBySku());
+    const movSummary=JSON.stringify(movs.slice(0,50));
+
+    const raw = await callClaude(`You are a business intelligence analyst for Nina Pita, a Dutch food brand operating in Japan.
+
+Analyze the following operations data and generate 4-6 specific, actionable insights about:
+- Product velocity (which SKUs move fastest/slowest)
+- Stock risk (what's at risk of running out or expiring)
+- Operational patterns
+- Opportunities or recommendations for the Japan market
+- Any anomalies or concerns
+
+Be specific, use the actual product names and numbers. Be direct and commercially focused.
+
+Return ONLY a JSON array:
+[{
+  "title": "short title",
+  "body": "2-3 sentences with specific data points and a clear recommendation",
+  "type": "opportunity | risk | pattern | recommendation",
+  "priority": "high | medium | low"
+}]
+
+Raw JSON only.
+
+CURRENT STOCK:
+${stockSummary}
+
+RECENT MOVEMENTS (last 50):
+${movSummary}`);
+
+    const insights=parseJSON(raw);
+    document.getElementById('insights-content').innerHTML=insights.map(ins=>`
+      <div class="insight-card" style="border-left-color:${ins.type==='risk'?'var(--red)':ins.type==='opportunity'?'var(--green)':ins.type==='recommendation'?'var(--accent)':'var(--purple)'}">
+        <div class="insight-title" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span>${ins.type==='risk'?'⚠️':ins.type==='opportunity'?'💡':ins.type==='recommendation'?'→':'📊'}</span>
+          <span>${ins.title}</span>
+          <span class="badge ${ins.priority==='high'?'b-broken':ins.priority==='low'?'b-ok':'b-blue'}" style="margin-left:auto">${ins.priority}</span>
+        </div>
+        <div class="insight-body">${ins.body}</div>
+      </div>`).join('');
+  } catch(err) {
+    document.getElementById('insights-content').innerHTML=`<div style="color:var(--red);font-size:12px;padding:12px">Error: ${err.message}</div>`;
+  } finally {
+    btn.disabled=false;
+    document.getElementById('insights-loading').classList.remove('show');
+  }
+}
+
+// ─── ALERTS ────────────────────────────────────────────────
+function renderAlerts() {
+  const snaps=DB.snapshots();
+  const el=document.getElementById('alerts-content');
+  if (!snaps.length) { el.innerHTML='<div class="empty"><div class="empty-icon">✅</div>Upload a report to see alerts.</div>'; return; }
+  const alerts=[];
+  const latest=snaps[0];
+  latest.items.filter(i=>i.broken).forEach(b=>alerts.push({ type:'warning', title:`Broken Lot — ${b.sku}`, detail:`${b.current_stock} cases of ${b.name} (lot ${b.lot||'?'}) are damaged. Expiry: ${b.expiry}`, action:'Confirm write-off with DSV.' }));
+  const stock=getStockBySku();
+  Object.values(stock).forEach(s=>{
+    if (s.stock===0) alerts.push({ type:'warning', title:`Out of Stock — ${s.sku}`, detail:`${s.name} has zero stock.`, action:'Check reorder schedule.' });
+    else if (s.stock>0&&s.stock<=5) alerts.push({ type:'info', title:`Low Stock — ${s.sku}`, detail:`Only ${s.stock} cases of ${s.name} remaining.`, action:'Consider reordering.' });
+  });
+  if (!alerts.length) { el.innerHTML='<div class="empty"><div class="empty-icon">✅</div>No alerts. All stock looks clean.</div>'; document.getElementById('alert-banner').classList.remove('show'); return; }
+  document.getElementById('alert-banner').classList.toggle('show', alerts.some(a=>a.type==='warning'));
+  el.innerHTML=alerts.map(a=>`
+    <div style="display:flex;gap:12px;align-items:flex-start;background:${a.type==='warning'?'var(--red-bg)':'var(--blue-bg)'};border:1px solid ${a.type==='warning'?'rgba(232,93,93,.2)':'rgba(123,159,232,.2)'};border-radius:var(--radius);padding:14px 16px;margin-bottom:8px">
+      <div style="font-size:18px;flex-shrink:0">${a.type==='warning'?'⚠️':'ℹ️'}</div>
+      <div><div style="font-weight:600;margin-bottom:3px">${a.title}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">${a.detail}</div>
+      <div style="font-size:11px;color:${a.type==='warning'?'var(--red)':'var(--blue)'}">→ ${a.action}</div></div>
+    </div>`).join('');
+}
+
+// ─── STATS ─────────────────────────────────────────────────
+function updateStats() {
+  const snaps=DB.snapshots(); if (!snaps.length) return;
+  const stock=getStockBySku(); const vals=Object.values(stock);
+  const total=vals.reduce((s,r)=>s+r.stock,0);
+  const broken=vals.filter(r=>r.broken>0).length;
+  const low=vals.filter(r=>r.stock>0&&r.stock<=5).length;
+  const alerts=broken+low;
+  const movs=DB.movements(); const now=new Date();
+  const out=movs.filter(m=>{ const d=new Date(m.date); return m.type==='out'&&d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); }).reduce((s,m)=>s+m.qty,0);
+  document.getElementById('s-skus').textContent=vals.length;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-out').textContent=out;
+  document.getElementById('s-alerts').textContent=alerts;
+  document.getElementById('s-recon').textContent=vals.length;
+  document.getElementById('last-updated').textContent='Last report: '+new Date(snaps[0].date).toLocaleDateString('en-GB',{dateStyle:'medium'});
+  document.getElementById('alert-banner').classList.toggle('show',alerts>0);
+}
+
+// ─── FILE UTILS ────────────────────────────────────────────
+function readB64(file) {
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result.split(',')[1]); r.onerror=()=>rej(new Error('Read failed')); r.readAsDataURL(file); });
+}
+function readExcel(file) {
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>{ try { const wb=XLSX.read(e.target.result,{type:'binary'}); let t=''; wb.SheetNames.forEach(n=>{ t+=XLSX.utils.sheet_to_csv(wb.Sheets[n]); }); res(t); } catch(err){rej(err);} }; r.onerror=()=>rej(new Error('File read failed')); r.readAsBinaryString(file); });
+}
+
+// ─── BOOT ──────────────────────────────────────────────────
+_checkAuth();
+</script>
+</body>
+</html>
