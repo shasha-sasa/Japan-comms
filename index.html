@@ -250,6 +250,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1)
     <div class="sb-nav">
       <div class="sb-section">Intake</div>
       <div class="sb-item active" id="nav-inbox" onclick="window.nav('inbox')"><span class="sb-icon">⬡</span>Inbox<span class="sb-badge" id="badge-inbox" style="display:none">0</span></div>
+      <div class="sb-item" id="nav-doclog" onclick="window.nav('doclog')"><span class="sb-icon">◫</span>Doc Log</div>
 
       <div class="sb-section">Knowledge</div>
       <div class="sb-item" id="nav-context" onclick="window.nav('context')"><span class="sb-icon">◈</span>Context</div>
@@ -331,6 +332,11 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1)
 
         <!-- RESULTS -->
         <div id="inbox-results"></div>
+      </div>
+
+      <!-- ═══ DOC LOG ═══ -->
+      <div id="page-doclog" class="content" style="display:none">
+        <div id="doclog-content"></div>
       </div>
 
       <!-- ═══ CONTEXT ═══ -->
@@ -470,6 +476,7 @@ const DB = {
   movements:()=>DB.get('movements',[]),
   skus:()=>DB.get('skus',{}),
   costs:()=>DB.get('costs',[]),
+  doclog:()=>DB.get('doclog',[]),
 };
 
 let _syncT=null;
@@ -526,7 +533,7 @@ async function _boot(){
 }
 
 // ═══ NAVIGATION ══════════════════════════════════════════
-const PAGES=['inbox','context','stock','movements','reconciliation','costs','insights','alerts','settings'];
+const PAGES=['inbox','doclog','context','stock','movements','reconciliation','costs','insights','alerts','settings'];
 const PAGE_META={
   inbox:{title:'Inbox',sub:'Drop anything in — documents, text, messages'},
   context:{title:'Context',sub:'Everything the system knows about the business'},
@@ -536,7 +543,8 @@ const PAGE_META={
   costs:{title:'Costs',sub:'Partner invoices and operational expenses'},
   insights:{title:'Insights',sub:'AI analysis of operations and context'},
   alerts:{title:'Alerts',sub:'Items requiring attention'},
-  settings:{title:'Settings',sub:'SKUs, partners, warehouses, master data'}
+  settings:{title:'Settings',sub:'SKUs, partners, warehouses, master data'},
+  doclog:{title:'Document Log',sub:'Every file and text ever processed through the Inbox'}
 };
 window.nav=function(name){
   window.location.hash=name;
@@ -555,6 +563,7 @@ window.nav=function(name){
   if(name==='costs')_renderCosts();
   if(name==='alerts')_renderAlerts();
   if(name==='settings')_renderSettings();
+  if(name==='doclog')_renderDocLog();
 };
 
 // ═══ CLAUDE API ══════════════════════════════════════════
@@ -807,6 +816,22 @@ window._confirmItem=function(i, r){
     extracted_data:r.extracted_data||{}
   });
   DB.set('context',ctx);
+
+  // Log this document permanently
+  const dlog=DB.doclog();
+  dlog.unshift({
+    id:Date.now(),
+    timestamp:new Date().toISOString(),
+    filename:r._source,
+    category:r.category||'Unknown',
+    title:r.title||r._source,
+    action:r.action_now||'context_only',
+    affects:r.affects||[],
+    movements_count:r.movements?.length||0,
+    snapshot_count:r.snapshot_items?.length||0,
+    costs_count:r.cost_items?.length||0,
+  });
+  DB.set('doclog',dlog);
 
   // 2. Save movements
   if(r.movements?.length){
@@ -1144,6 +1169,53 @@ function _renderAlerts(){
       <div><div style="font-weight:600;margin-bottom:3px">${a.title}</div><div style="font-size:12px;color:var(--t2);margin-bottom:4px">${a.detail}</div>
       <div style="font-size:11px;color:${a.type==='warning'?'var(--red)':'var(--blue)'}">→ ${a.action}</div></div>
     </div>`).join('');
+}
+
+// ═══ DOCUMENT LOG ═══════════════════════════════════════
+function _renderDocLog(){
+  const log=DB.doclog();
+  const el=document.getElementById('doclog-content');
+  if(!log.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">◫</div>No documents processed yet.<br>Everything you confirm through Inbox appears here.</div>';
+    return;
+  }
+  // Group by month
+  const byMonth={};
+  log.forEach(e=>{
+    const k=new Date(e.timestamp).toLocaleDateString('en-GB',{year:'numeric',month:'long'});
+    if(!byMonth[k])byMonth[k]=[];
+    byMonth[k].push(e);
+  });
+  // Stats
+  const total=log.length;
+  const withMovs=log.filter(e=>e.movements_count>0).length;
+  const withStock=log.filter(e=>e.snapshot_count>0).length;
+  const withCosts=log.filter(e=>e.costs_count>0).length;
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--gold)">${total}</div><div class="stat-l">Total Processed</div></div>
+      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--teal)">${withMovs}</div><div class="stat-l">Had Movements</div></div>
+      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--blue)">${withStock}</div><div class="stat-l">Had Stock Data</div></div>
+      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--orange)">${withCosts}</div><div class="stat-l">Had Costs</div></div>
+    </div>
+    ${Object.entries(byMonth).map(([month,entries])=>`
+      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);padding:14px 4px 8px;border-bottom:1px solid var(--b1);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">${month} · ${entries.length} document${entries.length!==1?'s':''}</div>
+      ${entries.map(e=>{
+        const catColor=CAT_COLORS[e.category]||'b-gray';
+        return `<div class="card" style="margin-bottom:8px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="badge ${catColor}">${e.category}</span>
+            <span style="font-weight:500;font-size:12px;flex:1">${e.title||e.filename}</span>
+            ${e.movements_count>0?`<span class="badge b-teal">${e.movements_count} mov</span>`:''}
+            ${e.snapshot_count>0?`<span class="badge b-gold">${e.snapshot_count} SKUs</span>`:''}
+            ${e.costs_count>0?`<span class="badge b-orange">¥ costs</span>`:''}
+            <span style="font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace">${new Date(e.timestamp).toLocaleDateString('en-GB',{dateStyle:'short'})}</span>
+          </div>
+          <div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:5px">
+            📎 ${e.filename}
+          </div>
+        </div>`;
+      }).join('')}`).join('')}`;
 }
 
 // ═══ SETTINGS ════════════════════════════════════════════
