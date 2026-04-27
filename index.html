@@ -785,83 +785,30 @@ async function _processUpload(file){
     if(ext==='pdf'){
       const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('read failed'));r.readAsDataURL(file)});
       extra=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`[PDF: ${file.name}]`}];
-    } else {
-      // For Excel: extract raw values not CSV to preserve Japanese text better
-      text=await new Promise((res,rej)=>{
-        const r=new FileReader();
-        r.onload=e=>{
-          try{
-            const wb=XLSX.read(e.target.result,{type:'binary',cellText:true,cellDates:true});
-            let t='';
-            wb.SheetNames.forEach(n=>{
-              const ws=wb.Sheets[n];
-              const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
-              t+=`[Sheet: ${n}]\n`;
-              // Only read first 60 rows to keep token count reasonable
-              for(let row=range.s.r;row<=Math.min(range.e.r,60);row++){
-                const rowData=[];
-                for(let col=range.s.c;col<=Math.min(range.e.c,15);col++){
-                  const cell=ws[XLSX.utils.encode_cell({r:row,c:col})];
-                  rowData.push(cell?String(cell.v||''):'');
-                }
-                if(rowData.some(v=>v.trim()))t+=rowData.join('\t')+'\n';
-              }
-            });
-            res(t);
-          }catch(err){rej(err)}
-        };
-        r.onerror=()=>rej(new Error('read failed'));
-        r.readAsBinaryString(file);
-      });
     }
 
-    const warehouseHint=filenameWarehouse?`\nFilename suggests warehouse: ${filenameWarehouse} — use this unless content clearly says otherwise.`:'';
-    const monthHint=filenameMonth?`\nFilename suggests month: ${filenameMonth} — use this unless content clearly says otherwise.`:'';
+    // For Excel: read directly — no Claude needed for numbers
+    let extractedSkus = null;
+    if(ext !== 'pdf'){
+      extractedSkus = await _readExcelDirect(file);
+    }
 
-    const raw=await _claude(`Warehouse inventory report for Nina Pita Japan (Dutch frozen pita brand).
-Known SKUs:\n${skuList}
+    // Use Claude only to identify month and warehouse (fast, small prompt)
+    const wHint = filenameWarehouse ? `Filename warehouse hint: ${filenameWarehouse}` : '';
+    const mHint = filenameMonth ? `Filename month hint: ${filenameMonth}` : '';
+    const identRaw = await _claude(`Nina Pita Japan warehouse report filename: "${file.name}"
+${wHint}
+${mHint}
+WAREHOUSE MAP: 豊海/Toyomi/DSV→"DSV Funabashi", 佐川/Sagawa/ヒューテック/Hyutech/在庫報告→"Sagawa (Hyutech Noorin)", シルバー/Silver→"Silver Family Warehouse"
+Return ONLY: {"month":"YYYY-MM","warehouse":"exact name"}`, extra);
 
-WAREHOUSE NAMES TO USE:
-- 豊海冷蔵 / Toyomi / DSV → "DSV Funabashi"
-- 佐川 / Sagawa / ヒューテックノオリン / Hyutech → "Sagawa (Hyutech Noorin)"
-- シルバー / Silver → "Silver Family Warehouse"
-${warehouseHint}${monthHint}
-
-COLUMN NAMES IN JAPANESE REPORTS:
-- 商品コード = SKU code
-- 品名 = product name
-- 賞味期限 = expiry date
-- 前月在庫 = opening stock (previous month closing = this month opening)
-- 入庫数 = inbound received this month
-- 在庫数 = closing stock (current stock at end of month)
-- 出庫数 = outbound (appears many times: 出庫数, 出庫数2... — sum ALL)
-
-CRITICAL:
-- Each SKU has MULTIPLE LOT ROWS — sum them all per SKU code
-- BROKEN lots: if 賞味期限 contains "BROKEN" — EXCLUDE that lot entirely from all numbers
-- Only include healthy (non-broken) lots
-- Aggregate all healthy lots per SKU
-
-Per-SKU totals (healthy lots only, all lots summed):
-- opening = SUM of 前月在庫
-- inbound = SUM of 入庫数
-- reported_out = SUM of all 出庫数 columns
-- closing = SUM of 在庫数
-
-Return ONLY JSON — no explanation, no markdown:
-{
-  "month": "YYYY-MM",
-  "warehouse": "one of the three warehouse names above",
-  "skus": {
-    "J001": {"name":"Nina Large φ15cm 100g","opening":45,"inbound":0,"reported_out":30,"closing":15},
-    "J003": {"name":"Nina Oval 20x11cm 100g","opening":18,"inbound":0,"reported_out":5,"closing":13}
-  }
-}
-
-DATA:\n${text}`,extra);
-
-    const result=_parseJSON(raw);
-    if(!result.month||!result.warehouse)throw new Error('Could not identify month or warehouse.');
+    const identified = _parseJSON(identRaw);
+    const result = {
+      month: identified.month || filenameMonth,
+      warehouse: identified.warehouse || filenameWarehouse || 'DSV Funabashi',
+      skus: extractedSkus || {}
+    };
+    if(!result.month) throw new Error('Could not identify month. Check filename contains YYYYMM.');
 
     _pendingReport={file:file.name,month:result.month,warehouse:result.warehouse,skus:result.skus};
 
@@ -904,6 +851,105 @@ window.saveUploadedReport=function(){
   const month=reports[Object.keys(reports).pop()]?.month;
   if(month)setTimeout(()=>window.showMonth(month),100);
 };
+
+// ═══ DIRECT EXCEL READER ════════════════════════════════
+// Reads DSV-style inventory Excel directly — no Claude needed for numbers
+// Structure: row 4 = headers, rows 5+ = data
+// Col 3=SKU, Col 6=name, Col 7=expiry, Col 8=inbound, Col 10=opening
+// Col 11=closing (formula — we calculate instead)
+// Col 12,14,16...96 = outbound quantities (every other column)
+async function _readExcelDirect(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        if(!ws)return res({});
+
+        // Find header row — look for 商品コード or 前月在庫
+        let headerRow=-1;
+        const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+        for(let row=range.s.r;row<=Math.min(range.e.r,10);row++){
+          for(let col=range.s.c;col<=range.e.c;col++){
+            const cell=ws[XLSX.utils.encode_cell({r:row,c:col})];
+            if(cell&&(cell.v==='商品コード'||cell.v==='前月在庫')){
+              headerRow=row;break;
+            }
+          }
+          if(headerRow>=0)break;
+        }
+        if(headerRow<0){console.warn('Header row not found, using row 3');headerRow=3;}
+
+        // Map column positions from headers
+        const cols={sku:-1,name:-1,expiry:-1,inbound:-1,opening:-1,closing:-1};
+        const outCols=[];
+        for(let col=range.s.c;col<=range.e.c;col++){
+          const cell=ws[XLSX.utils.encode_cell({r:headerRow,c:col})];
+          const v=cell?String(cell.v||'').trim():'';
+          if(v==='商品コード')cols.sku=col;
+          else if(v==='品名')cols.name=col;
+          else if(v==='賞味期限')cols.expiry=col;
+          else if(v==='入庫数')cols.inbound=col;
+          else if(v==='前月在庫')cols.opening=col;
+          else if(v==='在庫数')cols.closing=col;
+          else if(v.startsWith('出庫数'))outCols.push(col);
+        }
+
+        // Fallback to known column positions if headers not found
+        if(cols.sku<0)cols.sku=2;  // col C (0-indexed)
+        if(cols.name<0)cols.name=5;
+        if(cols.expiry<0)cols.expiry=6;
+        if(cols.inbound<0)cols.inbound=7;
+        if(cols.opening<0)cols.opening=9;
+        if(outCols.length===0){
+          // Default outbound cols: 11,13,15...95 (0-indexed = every 2nd starting col 11)
+          for(let c=11;c<=96;c+=2)outCols.push(c);
+        }
+
+        // Read data rows
+        const skus={};
+        for(let row=headerRow+1;row<=range.e.r;row++){
+          const skuCell=ws[XLSX.utils.encode_cell({r:row,c:cols.sku})];
+          const sku=skuCell?String(skuCell.v||'').trim():'';
+          if(!sku||!sku.match(/^[A-Z][A-Z0-9]{2,5}$/))continue; // must look like a SKU
+
+          const expiryCell=ws[XLSX.utils.encode_cell({r:row,c:cols.expiry})];
+          const expiry=expiryCell?String(expiryCell.v||''):'';
+          if(expiry.toUpperCase().includes('BROKEN'))continue; // skip broken lots
+
+          const nameCell=ws[XLSX.utils.encode_cell({r:row,c:cols.name})];
+          const inboundCell=ws[XLSX.utils.encode_cell({r:row,c:cols.inbound})];
+          const openingCell=ws[XLSX.utils.encode_cell({r:row,c:cols.opening})];
+
+          const name=nameCell?String(nameCell.v||''):'';
+          const inbound=inboundCell&&typeof inboundCell.v==='number'?inboundCell.v:0;
+          const opening=openingCell&&typeof openingCell.v==='number'?openingCell.v:0;
+
+          // Sum all outbound columns
+          let outbound=0;
+          for(const oc of outCols){
+            const oc_cell=ws[XLSX.utils.encode_cell({r:row,c:oc})];
+            if(oc_cell&&typeof oc_cell.v==='number')outbound+=oc_cell.v;
+          }
+
+          // Aggregate lots per SKU
+          if(!skus[sku])skus[sku]={name:name||SKUS[sku]||sku,opening:0,inbound:0,reported_out:0,closing:0};
+          skus[sku].opening+=opening;
+          skus[sku].inbound+=inbound;
+          skus[sku].reported_out+=outbound;
+          // Calculate closing = opening + inbound - outbound (formula cell unreliable)
+          skus[sku].closing=skus[sku].opening+skus[sku].inbound-skus[sku].reported_out;
+        }
+
+        console.log(`Direct Excel read: ${Object.keys(skus).length} SKUs extracted`);
+        res(skus);
+      }catch(err){console.warn('Direct Excel read failed:',err.message);res(null);}
+    };
+    r.onerror=()=>res(null);
+    r.readAsBinaryString(file);
+  });
+}
 
 // ═══ CLAUDE API ══════════════════════════════════════════
 async function _claude(prompt,extra=[]){
