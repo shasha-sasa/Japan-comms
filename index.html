@@ -3,216 +3,312 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nina Pita — Japan Operations Brain</title>
+<title>Nina Pita — Stock</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Mono:wght@300;400;500&display=swap');
+
 :root {
-  --bg:#080808;
-  --s1:#101010;--s2:#161616;--s3:#1e1e1e;
-  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.11);--b3:rgba(255,255,255,0.18);
-  --t1:#ede9e3;--t2:#6e6a64;--t3:#3a3732;
-  --gold:#d4a853;--gold-dim:rgba(212,168,83,0.12);--gold-glow:rgba(212,168,83,0.25);
-  --green:#3d9e6b;--green-dim:rgba(61,158,107,0.1);
-  --red:#b85555;--red-dim:rgba(184,85,85,0.1);
-  --blue:#5577aa;--blue-dim:rgba(85,119,170,0.1);
-  --orange:#b87744;--orange-dim:rgba(184,119,68,0.1);
-  --purple:#8866aa;--purple-dim:rgba(136,102,170,0.1);
-  --teal:#449988;--teal-dim:rgba(68,153,136,0.1);
+  --cream:#f5f0e8;
+  --warm:#ede5d4;
+  --paper:#e8dfc8;
+  --ink:#1a1612;
+  --ink2:#4a4238;
+  --ink3:#8a7d6e;
+  --ink4:#b8a898;
+  --gold:#8b6914;
+  --gold-light:#c4961e;
+  --gold-bg:rgba(139,105,20,0.08);
+  --green:#2d6a4f;
+  --green-bg:rgba(45,106,79,0.08);
+  --green-border:rgba(45,106,79,0.2);
+  --red:#8b2020;
+  --red-bg:rgba(139,32,32,0.07);
+  --red-border:rgba(139,32,32,0.2);
+  --amber:#8b5e14;
+  --amber-bg:rgba(139,94,20,0.08);
+  --amber-border:rgba(139,94,20,0.2);
   --r:8px;--rs:4px;
+  --shadow:0 1px 3px rgba(26,22,18,0.08),0 4px 16px rgba(26,22,18,0.04);
 }
+
 *{box-sizing:border-box;margin:0;padding:0}
 input[type=number]{-moz-appearance:textfield}
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;font-size:13px;line-height:1.6}
+
+body{
+  font-family:'Fraunces',Georgia,serif;
+  background:var(--cream);
+  color:var(--ink);
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.6;
+}
 
 /* AUTH */
-#auth{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999;background-image:radial-gradient(ellipse at 50% 0%,rgba(212,168,83,0.04) 0%,transparent 60%)}
+#auth{
+  position:fixed;inset:0;
+  background:var(--cream);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+  background-image:radial-gradient(ellipse at 60% 20%,rgba(139,105,20,0.06) 0%,transparent 60%);
+}
 #auth.gone{display:none}
-.auth-wrap{width:320px;text-align:center}
-.auth-mark{width:48px;height:48px;border:1.5px solid var(--gold);border-radius:var(--r);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:16px;color:var(--gold);font-family:'IBM Plex Mono',monospace;font-weight:500}
-.auth-h{font-size:18px;font-weight:600;margin-bottom:6px;letter-spacing:-0.02em}
-.auth-sub{font-size:11px;color:var(--t2);margin-bottom:28px;font-family:'IBM Plex Mono',monospace}
-.auth-in{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:11px 14px;color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;text-align:center;letter-spacing:.1em;margin-bottom:10px;transition:border-color .15s}
-.auth-in:focus{border-color:var(--gold)}
-.auth-btn{width:100%;background:var(--gold);color:#080808;border:none;border-radius:var(--rs);padding:11px;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',monospace;letter-spacing:.05em;text-transform:uppercase;transition:opacity .15s}
-.auth-btn:hover{opacity:.85}
-.auth-err{font-size:11px;color:var(--red);margin-top:8px;min-height:14px;font-family:'IBM Plex Mono',monospace}
+.auth-box{width:320px;text-align:center}
+.auth-logo{
+  font-size:11px;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--gold);margin-bottom:32px;font-family:'DM Mono',monospace;
+}
+.auth-title{font-size:28px;font-weight:300;letter-spacing:-.02em;margin-bottom:6px;line-height:1.2}
+.auth-title em{font-style:italic;color:var(--gold)}
+.auth-sub{font-size:12px;color:var(--ink3);margin-bottom:32px;font-family:'DM Mono',monospace}
+.auth-in{
+  width:100%;background:transparent;border:none;border-bottom:1.5px solid var(--paper);
+  padding:12px 0;color:var(--ink);font-family:'DM Mono',monospace;font-size:13px;
+  outline:none;text-align:center;letter-spacing:.15em;transition:border-color .2s;
+  margin-bottom:24px;
+}
+.auth-in:focus{border-bottom-color:var(--gold)}
+.auth-in::placeholder{color:var(--ink4);letter-spacing:.1em}
+.auth-btn{
+  background:var(--ink);color:var(--cream);border:none;
+  padding:12px 32px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer;font-family:'DM Mono',monospace;transition:opacity .15s;
+}
+.auth-btn:hover{opacity:.75}
+.auth-err{font-size:11px;color:var(--red);margin-top:12px;font-family:'DM Mono',monospace;min-height:16px}
 
-/* LAYOUT */
-.shell{display:flex;min-height:100vh}
-.sidebar{width:200px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:50}
-.main-area{margin-left:200px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+/* SHELL */
+.app{max-width:900px;margin:0 auto;padding:0 24px 64px}
 
-/* SIDEBAR */
-.sb-top{padding:18px 16px 14px;border-bottom:1px solid var(--b1)}
-.sb-logo{display:flex;align-items:center;gap:10px}
-.sb-mark{width:30px;height:30px;border:1.5px solid var(--gold);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);font-family:'IBM Plex Mono',monospace;font-weight:500;flex-shrink:0}
-.sb-name{font-size:12px;font-weight:600;line-height:1.3}
-.sb-sub{font-size:9px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:1px}
-.sb-nav{padding:12px 8px;flex:1;overflow-y:auto}
-.sb-section{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);padding:10px 8px 5px;font-family:'IBM Plex Mono',monospace}
-.sb-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:var(--rs);cursor:pointer;transition:all .12s;color:var(--t2);font-size:12px;font-weight:500;user-select:none}
-.sb-item:hover{background:var(--s2);color:var(--t1)}
-.sb-item.active{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(212,168,83,0.2)}
-.sb-icon{font-size:13px;width:16px;text-align:center;flex-shrink:0}
-.sb-badge{margin-left:auto;font-size:9px;background:var(--red);color:#fff;padding:1px 5px;border-radius:10px;font-family:'IBM Plex Mono',monospace}
-.sb-bottom{padding:12px 8px;border-top:1px solid var(--b1)}
-.sync-pill{font-size:9px;font-family:'IBM Plex Mono',monospace;padding:4px 8px;border-radius:10px;background:var(--s2);border:1px solid var(--b1);color:var(--t3);transition:all .3s;text-align:center}
-.sync-pill.syncing{color:var(--gold);border-color:var(--gold-dim)}
-.sync-pill.saved{color:var(--green);border-color:var(--green-dim)}
-.sync-pill.error{color:var(--red);border-color:var(--red-dim)}
+/* HEADER */
+.hdr{
+  padding:32px 0 24px;
+  border-bottom:1px solid var(--paper);
+  margin-bottom:32px;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px;
+}
+.hdr-left{}
+.hdr-brand{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;font-family:'DM Mono',monospace}
+.hdr-title{font-size:26px;font-weight:300;letter-spacing:-.02em;line-height:1.1}
+.hdr-title em{font-style:italic;color:var(--gold-light)}
+.hdr-sub{font-size:12px;color:var(--ink3);margin-top:4px;font-family:'DM Mono',monospace}
+.hdr-right{display:flex;align-items:center;gap:10px}
 
-/* TOPBAR */
-.topbar{padding:14px 24px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;background:var(--s1);position:sticky;top:0;z-index:40}
-.topbar-title{font-size:14px;font-weight:600;letter-spacing:-0.01em}
-.topbar-sub{font-size:10px;color:var(--t2);font-family:'IBM Plex Mono',monospace;margin-top:1px}
-.topbar-right{display:flex;align-items:center;gap:8px}
+/* STOCK HERO */
+.stock-hero{
+  background:var(--ink);
+  border-radius:var(--r);
+  padding:28px 32px;
+  margin-bottom:24px;
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:1px;
+  background:linear-gradient(135deg,var(--ink) 0%,#2d2620 100%);
+  position:relative;
+  overflow:hidden;
+}
+.stock-hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 80% 20%,rgba(139,105,20,0.15) 0%,transparent 60%);
+  pointer-events:none;
+}
+.hero-cell{padding:0 24px;position:relative;z-index:1}
+.hero-cell:not(:last-child){border-right:1px solid rgba(255,255,255,0.08)}
+.hero-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(232,215,185,0.5);margin-bottom:8px;font-family:'DM Mono',monospace}
+.hero-val{font-size:36px;font-weight:300;color:#f5f0e8;line-height:1;letter-spacing:-.02em;font-family:'Fraunces',serif}
+.hero-val em{font-style:italic;color:#c4961e}
+.hero-sub{font-size:11px;color:rgba(232,215,185,0.4);margin-top:5px;font-family:'DM Mono',monospace}
 
-/* STATS STRIP */
-.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid var(--b1)}
-.stat-cell{padding:12px 20px;border-right:1px solid var(--b1);cursor:pointer;transition:background .12s}
-.stat-cell:last-child{border-right:none}
-.stat-cell:hover{background:var(--s2)}
-.stat-n{font-size:22px;font-weight:600;font-family:'IBM Plex Mono',monospace;line-height:1;margin-bottom:2px}
-.stat-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em}
+/* MONTH TIMELINE */
+.section-label{
+  font-size:10px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink3);margin-bottom:14px;font-family:'DM Mono',monospace;
+}
+.months-list{display:flex;flex-direction:column;gap:8px;margin-bottom:32px}
+.month-row{
+  background:#fff;border:1px solid var(--paper);border-radius:var(--r);
+  padding:16px 20px;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;gap:16px;
+  box-shadow:var(--shadow);
+}
+.month-row:hover{border-color:var(--gold);background:var(--gold-bg)}
+.month-row.active{border-color:var(--gold);background:var(--gold-bg)}
+.month-dot{
+  width:10px;height:10px;border-radius:50%;flex-shrink:0;
+}
+.dot-green{background:var(--green)}
+.dot-amber{background:var(--amber)}
+.dot-red{background:var(--red)}
+.dot-gray{background:var(--ink4)}
+.dot-blue{background:#2d5f8a}
+.month-name{font-size:14px;font-weight:400;flex:1}
+.month-status{font-size:11px;font-family:'DM Mono',monospace}
+.month-status.ok{color:var(--green)}
+.month-status.warn{color:var(--amber)}
+.month-status.gap{color:var(--red)}
+.month-status.miss{color:var(--ink3)}
+.month-status.prog{color:#2d5f8a}
+.month-arrow{color:var(--ink4);font-size:12px}
 
-/* CONTENT */
-.content{flex:1;padding:24px;max-width:1100px;width:100%}
+/* DETAIL PANEL */
+.detail-panel{
+  background:#fff;border:1px solid var(--paper);border-radius:var(--r);
+  box-shadow:var(--shadow);margin-bottom:24px;overflow:hidden;
+  display:none;
+}
+.detail-panel.show{display:block}
+.detail-hdr{
+  padding:20px 24px;border-bottom:1px solid var(--paper);
+  display:flex;align-items:center;gap:12px;
+}
+.detail-month{font-size:18px;font-weight:400;letter-spacing:-.01em}
+.detail-badge{
+  font-size:10px;padding:3px 10px;border-radius:20px;
+  font-family:'DM Mono',monospace;font-weight:500;letter-spacing:.04em;
+}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge-gray{background:rgba(139,125,110,0.1);color:var(--ink3);border:1px solid rgba(139,125,110,0.2)}
+.badge-blue{background:rgba(45,95,138,0.08);color:#2d5f8a;border:1px solid rgba(45,95,138,0.2)}
+.detail-body{padding:24px}
 
-/* CARDS */
-.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px 20px;margin-bottom:14px}
-.card-h{font-size:12px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.card-h .tag{font-size:9px;padding:2px 7px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-weight:500}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* WAREHOUSE CHECKLIST */
+.wh-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.wh-item{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;border-radius:var(--rs);
+  border:1px solid;
+}
+.wh-item.ok{background:var(--green-bg);border-color:var(--green-border)}
+.wh-item.missing{background:var(--red-bg);border-color:var(--red-border)}
+.wh-item.unknown{background:var(--amber-bg);border-color:var(--amber-border)}
+.wh-check{font-size:14px;flex-shrink:0}
+.wh-name{font-size:13px;font-weight:400;flex:1}
+.wh-detail{font-size:11px;font-family:'DM Mono',monospace}
+.wh-detail.ok{color:var(--green)}
+.wh-detail.missing{color:var(--red)}
+.wh-detail.unknown{color:var(--amber)}
 
-/* INBOX DROP */
-.inbox-drop{border:1.5px dashed var(--b2);border-radius:var(--r);padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s1);position:relative}
-.inbox-drop:hover,.inbox-drop.drag{border-color:var(--gold);background:var(--gold-dim)}
-.inbox-drop-icon{font-size:28px;margin-bottom:10px;opacity:.4}
-.inbox-drop-title{font-size:13px;font-weight:500;margin-bottom:4px}
-.inbox-drop-sub{font-size:11px;color:var(--t2)}
-.inbox-drop-sub span{color:var(--gold)}
-.file-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--b2);border-radius:20px;padding:3px 10px 3px 8px;font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace}
-.chip-x{cursor:pointer;color:var(--t3);font-size:12px;transition:color .12s}
-.chip-x:hover{color:var(--red)}
+/* UPLOAD INLINE */
+.upload-inline{
+  border:1.5px dashed var(--paper);border-radius:var(--rs);
+  padding:16px;text-align:center;cursor:pointer;transition:all .2s;
+  margin-top:8px;background:var(--cream);
+}
+.upload-inline:hover,.upload-inline.drag{border-color:var(--gold);background:var(--gold-bg)}
+.upload-inline-text{font-size:12px;color:var(--ink3);font-family:'DM Mono',monospace}
+.upload-inline-text span{color:var(--gold)}
 
-/* TEXT PASTE */
-.paste-area{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:13px 15px;color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:11.5px;resize:vertical;min-height:120px;outline:none;transition:border-color .15s;line-height:1.7}
-.paste-area:focus{border-color:var(--gold)}
-.paste-area::placeholder{color:var(--t3)}
+/* RECON TABLE */
+.recon-table-wrap{overflow-x:auto;margin-top:16px}
+.recon-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.recon-tbl th{
+  font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink3);padding:8px 12px;text-align:right;
+  border-bottom:1.5px solid var(--paper);
+  font-family:'DM Mono',monospace;font-weight:400;
+}
+.recon-tbl th:first-child,.recon-tbl th:nth-child(2){text-align:left}
+.recon-tbl td{
+  padding:10px 12px;border-bottom:1px solid var(--paper);
+  font-family:'DM Mono',monospace;text-align:right;vertical-align:middle;
+}
+.recon-tbl td:first-child,.recon-tbl td:nth-child(2){text-align:left;font-family:'Fraunces',serif;font-size:13px}
+.recon-tbl tr:last-child td{border-bottom:none}
+.recon-tbl tr:hover td{background:var(--gold-bg)}
+.recon-tbl tr.gap-row td{background:var(--red-bg)}
+.sku-code{font-size:10px;color:var(--gold);font-family:'DM Mono',monospace}
+.gap-val{color:var(--red);font-weight:500}
+.ok-val{color:var(--green)}
+.neutral{color:var(--ink3)}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:7px;border:none;border-radius:var(--rs);padding:9px 16px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;transition:all .15s;letter-spacing:.01em}
-.btn-gold{background:var(--gold);color:#080808}
-.btn-gold:hover{opacity:.85;transform:translateY(-1px)}
-.btn-gold:disabled{opacity:.35;cursor:not-allowed;transform:none}
-.btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--t2)}
-.btn-ghost:hover{color:var(--t1);border-color:var(--b3)}
-.btn-green{background:var(--green-dim);border:1px solid rgba(61,158,107,.25);color:var(--green)}
-.btn-red{background:var(--red-dim);border:1px solid rgba(184,85,85,.25);color:var(--red)}
-.btn-row{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+/* FORMULA BAR */
+.formula-bar{
+  background:var(--warm);border-radius:var(--rs);
+  padding:12px 16px;margin-bottom:16px;
+  font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.formula-bar .f-part{color:var(--ink2)}
+.formula-bar .f-op{color:var(--ink4)}
+.formula-bar .f-eq{color:var(--gold)}
 
-/* FORMS */
-.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
-.fl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);font-family:'IBM Plex Mono',monospace}
-.fi,.fs{background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:9px 12px;color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;transition:border-color .15s;width:100%}
-.fi:focus,.fs:focus{border-color:var(--gold)}
-.fs option{background:var(--s2)}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.full{grid-column:1/-1}
+/* PLAIN MESSAGE */
+.plain-msg{
+  font-size:13px;color:var(--ink2);line-height:1.7;
+  padding:16px 0;
+}
+.plain-msg strong{color:var(--ink)}
+.plain-msg .action{
+  display:inline-block;margin-top:8px;
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--gold);font-family:'DM Mono',monospace;cursor:pointer;
+  border-bottom:1px solid rgba(139,105,20,0.3);
+  transition:border-color .15s;
+}
+.plain-msg .action:hover{border-color:var(--gold)}
 
-/* LOADING */
-.loader{display:none;align-items:center;gap:10px;padding:12px 15px;background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);margin-top:12px}
+/* LOADER */
+.loader{
+  display:none;align-items:center;gap:10px;
+  padding:12px 16px;font-size:12px;color:var(--ink3);
+  font-family:'DM Mono',monospace;
+}
 .loader.on{display:flex}
-.spin{width:15px;height:15px;border:2px solid var(--b2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spin{width:14px;height:14px;border:1.5px solid var(--paper);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loader-txt{font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace}
-.loader-txt span{color:var(--gold)}
 
-/* TABLES */
-.tbl-wrap{border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
-.tbl{width:100%;border-collapse:collapse}
-.tbl th{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t3);padding:8px 13px;text-align:left;border-bottom:1px solid var(--b1);background:var(--s1);font-family:'IBM Plex Mono',monospace}
-.tbl td{padding:9px 13px;border-bottom:1px solid var(--b1);font-size:11.5px;background:var(--s1);transition:background .1s}
-.tbl tr:hover td{background:var(--s2)}
-.tbl tr:last-child td{border-bottom:none}
-.mono{font-family:'IBM Plex Mono',monospace}
-.right{text-align:right}
+/* UPLOAD BUTTON */
+.upload-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--ink);color:var(--cream);border:none;
+  padding:10px 20px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  cursor:pointer;font-family:'DM Mono',monospace;transition:opacity .15s;border-radius:var(--rs);
+}
+.upload-btn:hover{opacity:.75}
+.upload-btn.secondary{background:transparent;color:var(--ink2);border:1px solid var(--paper)}
+.upload-btn.secondary:hover{border-color:var(--ink3)}
+.btn-row{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
 
-/* BADGES */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;font-family:'IBM Plex Mono',monospace}
-.b-gold{background:var(--gold-dim);color:var(--gold)}
-.b-green{background:var(--green-dim);color:var(--green)}
-.b-red{background:var(--red-dim);color:var(--red)}
-.b-blue{background:var(--blue-dim);color:var(--blue)}
-.b-orange{background:var(--orange-dim);color:var(--orange)}
-.b-purple{background:var(--purple-dim);color:var(--purple)}
-.b-teal{background:var(--teal-dim);color:var(--teal)}
-.b-gray{background:rgba(100,100,100,.15);color:var(--t2)}
-
-/* CLASSIFICATION CARD */
-.classify-card{border:1px solid var(--b2);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .15s}
-.classify-card.confirmed{border-color:rgba(61,158,107,.3);opacity:.5}
-.classify-header{padding:12px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--s2)}
-.classify-header:hover{background:var(--s3)}
-.classify-body{padding:14px 16px;border-top:1px solid var(--b1);display:none}
-.classify-body.open{display:block}
-.classify-source{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-bottom:8px}
-.classify-summary{font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:12px}
-.affects-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
-.affect-pill{font-size:9px;padding:2px 8px;border-radius:10px;border:1px solid var(--b2);color:var(--t2);font-family:'IBM Plex Mono',monospace}
-.affect-pill.active{background:var(--gold-dim);border-color:rgba(212,168,83,.3);color:var(--gold)}
-.extracted-data{background:var(--s3);border-radius:var(--rs);padding:12px 14px;margin-bottom:12px;font-size:11px;font-family:'IBM Plex Mono',monospace;line-height:1.9;color:var(--t2)}
-.extracted-data .key{color:var(--t3)}
-.extracted-data .val{color:var(--t1)}
-
-/* CONTEXT ENTRIES */
-.ctx-entry{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;transition:border-color .15s}
-.ctx-entry:hover{border-color:var(--b2)}
-.ctx-entry-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-.ctx-entry-title{font-size:12px;font-weight:600;flex:1}
-.ctx-entry-date{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
-.ctx-entry-body{font-size:11.5px;color:var(--t2);line-height:1.7}
-.ctx-search{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:10px 14px;color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:12px;outline:none;margin-bottom:16px;transition:border-color .15s}
-.ctx-search:focus{border-color:var(--gold)}
-
-/* RECON GRID */
-.recon-grid{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr 1fr 1fr 90px}
-.recon-hd{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;font-weight:600;padding:8px 13px;border-bottom:1px solid var(--b1);font-family:'IBM Plex Mono',monospace}
-.recon-cell{padding:10px 13px;border-bottom:1px solid var(--b1);font-size:12px;display:flex;align-items:center}
-
-/* INSIGHTS */
-.insight{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;border-left:3px solid var(--b2)}
-.insight.opportunity{border-left-color:var(--green)}
-.insight.risk{border-left-color:var(--red)}
-.insight.recommendation{border-left-color:var(--gold)}
-.insight.pattern{border-left-color:var(--purple)}
-.insight-h{font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px}
-.insight-body{font-size:12px;color:var(--t2);line-height:1.7}
-
-/* ALERT BANNER */
-.alert-bar{display:none;background:var(--red-dim);border-bottom:1px solid rgba(184,85,85,.2);padding:8px 24px;font-size:11px;color:var(--red);font-family:'IBM Plex Mono',monospace;cursor:pointer;margin-left:200px}
-.alert-bar.on{display:block}
+/* SYNC */
+.sync-bar{
+  position:fixed;bottom:16px;right:16px;
+  font-size:10px;font-family:'DM Mono',monospace;
+  padding:5px 12px;border-radius:20px;
+  background:#fff;border:1px solid var(--paper);
+  color:var(--ink4);box-shadow:var(--shadow);
+  transition:all .3s;z-index:100;
+}
+.sync-bar.syncing{color:var(--gold);border-color:rgba(139,105,20,0.3)}
+.sync-bar.saved{color:var(--green);border-color:var(--green-border)}
+.sync-bar.error{color:var(--red);border-color:var(--red-border)}
 
 /* EMPTY */
-.empty{text-align:center;padding:48px 24px;color:var(--t3)}
-.empty-icon{font-size:28px;margin-bottom:10px;opacity:.25}
+.empty{text-align:center;padding:48px 24px;color:var(--ink4)}
+.empty-icon{font-size:28px;margin-bottom:12px;opacity:.3}
+.empty-text{font-size:13px;line-height:1.7}
 
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px}
+/* FORMS */
+.fi,.fs{
+  background:#fff;border:1px solid var(--paper);
+  padding:9px 12px;color:var(--ink);font-family:'DM Mono',monospace;
+  font-size:12px;outline:none;transition:border-color .15s;width:100%;
+  border-radius:var(--rs);
+}
+.fi:focus,.fs:focus{border-color:var(--gold)}
+.fs option{background:#fff}
+.fl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px;font-family:'DM Mono',monospace}
+.fg{display:flex;flex-direction:column;margin-bottom:12px}
+.form-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-/* MOBILE */
-@media(max-width:768px){
-  .sidebar{display:none}
-  .main-area,.alert-bar{margin-left:0}
-  .stats-strip{grid-template-columns:repeat(3,1fr)}
-  .two-col,.form-grid,.recon-grid{grid-template-columns:1fr}
+@media(max-width:600px){
+  .stock-hero{grid-template-columns:1fr}
+  .hero-cell:not(:last-child){border-right:none;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:16px;margin-bottom:8px}
+  .form-2{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -220,358 +316,528 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--t1)
 
 <!-- AUTH -->
 <div id="auth">
-  <div class="auth-wrap">
-    <div class="auth-mark">NP</div>
-    <div class="auth-h">Japan Operations</div>
-    <div class="auth-sub">Nina Pita — Restricted</div>
+  <div class="auth-box">
+    <div class="auth-logo">Nina Pita · Japan</div>
+    <div class="auth-title">Stock<br><em>Reconciliation</em></div>
+    <div class="auth-sub">Restricted access</div>
     <input class="auth-in" type="password" id="auth-pw" placeholder="password" onkeydown="if(event.key==='Enter')window.authSubmit()" />
     <button class="auth-btn" onclick="window.authSubmit()">Enter</button>
     <div class="auth-err" id="auth-err"></div>
   </div>
 </div>
 
-<!-- ALERT BANNER -->
-<div class="alert-bar" id="alert-bar" onclick="window.nav('alerts')">⚠ Issues detected — click to review</div>
+<div id="sync-bar" class="sync-bar" style="display:none">Saved</div>
 
-<!-- SHELL -->
-<div class="shell" id="shell" style="display:none">
+<!-- APP -->
+<div class="app" id="app" style="display:none">
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sb-top">
-      <div class="sb-logo">
-        <div class="sb-mark">NP</div>
-        <div>
-          <div class="sb-name">Japan Ops</div>
-          <div class="sb-sub">Operations Brain</div>
-        </div>
-      </div>
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-brand">Nina Pita · Japan Operations</div>
+      <div class="hdr-title">Stock <em>Overview</em></div>
+      <div class="hdr-sub" id="hdr-sub">Loading...</div>
     </div>
-    <div class="sb-nav">
-      <div class="sb-section">Intake</div>
-      <div class="sb-item active" id="nav-inbox" onclick="window.nav('inbox')"><span class="sb-icon">⬡</span>Inbox<span class="sb-badge" id="badge-inbox" style="display:none">0</span></div>
-      <div class="sb-item" id="nav-doclog" onclick="window.nav('doclog')"><span class="sb-icon">◫</span>Doc Log</div>
-
-      <div class="sb-section">Knowledge</div>
-      <div class="sb-item" id="nav-context" onclick="window.nav('context')"><span class="sb-icon">◈</span>Context</div>
-
-      <div class="sb-section">Operations</div>
-      <div class="sb-item" id="nav-stock" onclick="window.nav('stock')"><span class="sb-icon">▦</span>Stock</div>
-      <div class="sb-item" id="nav-movements" onclick="window.nav('movements')"><span class="sb-icon">⇅</span>Movements</div>
-      <div class="sb-item" id="nav-reconciliation" onclick="window.nav('reconciliation')"><span class="sb-icon">⊟</span>Reconciliation</div>
-      <div class="sb-item" id="nav-costs" onclick="window.nav('costs')"><span class="sb-icon">¥</span>Costs</div>
-
-      <div class="sb-section">Intelligence</div>
-      <div class="sb-item" id="nav-insights" onclick="window.nav('insights')"><span class="sb-icon">✦</span>Insights</div>
-      <div class="sb-item" id="nav-alerts" onclick="window.nav('alerts')"><span class="sb-icon">◉</span>Alerts<span class="sb-badge" id="badge-alerts" style="display:none">0</span></div>
-
-      <div class="sb-section">Config</div>
-      <div class="sb-item" id="nav-settings" onclick="window.nav('settings')"><span class="sb-icon">⊕</span>Settings</div>
-    </div>
-    <div class="sb-bottom">
-      <div class="sync-pill" id="sync-pill">Ready</div>
+    <div class="hdr-right">
+      <button class="upload-btn secondary" onclick="window.showUploadModal()">+ Upload Report</button>
     </div>
   </div>
 
-  <!-- MAIN -->
-  <div class="main-area">
+  <!-- STOCK HERO -->
+  <div class="stock-hero">
+    <div class="hero-cell">
+      <div class="hero-label">Total Cases Today</div>
+      <div class="hero-val" id="hero-total">—</div>
+      <div class="hero-sub" id="hero-warehouses">across all warehouses</div>
+    </div>
+    <div class="hero-cell">
+      <div class="hero-label">This Month Outbound</div>
+      <div class="hero-val" id="hero-out">—</div>
+      <div class="hero-sub" id="hero-out-sub">cases shipped</div>
+    </div>
+    <div class="hero-cell">
+      <div class="hero-label">Last Reconciled</div>
+      <div class="hero-val" id="hero-recon"><em>—</em></div>
+      <div class="hero-sub" id="hero-recon-sub">no data yet</div>
+    </div>
+  </div>
 
-    <!-- TOPBAR -->
-    <div class="topbar">
-      <div>
-        <div class="topbar-title" id="page-title">Inbox</div>
-        <div class="topbar-sub" id="page-sub">Drop anything in — documents, text, messages</div>
-      </div>
-      <div class="topbar-right">
-        <span style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace" id="last-sync"></span>
+  <!-- MONTHS -->
+  <div class="section-label">Monthly Reconciliation</div>
+  <div class="months-list" id="months-list">
+    <div class="empty"><div class="empty-icon">◎</div><div class="empty-text">No data yet.<br>Upload a warehouse report to get started.</div></div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-hdr">
+      <div class="detail-month" id="detail-month-title">—</div>
+      <div class="detail-badge badge-gray" id="detail-badge">—</div>
+      <div style="margin-left:auto">
+        <button class="upload-btn secondary" style="font-size:10px;padding:7px 14px" onclick="document.getElementById('detail-panel').classList.remove('show')">Close</button>
       </div>
     </div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
 
-    <!-- STATS STRIP -->
-    <div class="stats-strip">
-      <div class="stat-cell" onclick="window.nav('stock')"><div class="stat-n" id="st-skus" style="color:var(--blue)">—</div><div class="stat-l">SKUs</div></div>
-      <div class="stat-cell" onclick="window.nav('stock')"><div class="stat-n" id="st-cases" style="color:var(--gold)">—</div><div class="stat-l">Total Cases</div></div>
-      <div class="stat-cell" onclick="window.nav('movements')"><div class="stat-n" id="st-movs" style="color:var(--teal)">—</div><div class="stat-l">Movements</div></div>
-      <div class="stat-cell" onclick="window.nav('context')"><div class="stat-n" id="st-ctx" style="color:var(--purple)">—</div><div class="stat-l">Context Entries</div></div>
-      <div class="stat-cell" onclick="window.nav('alerts')"><div class="stat-n" id="st-alerts" style="color:var(--orange)">—</div><div class="stat-l">Alerts</div></div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div id="upload-modal" style="display:none;position:fixed;inset:0;background:rgba(26,22,18,0.5);z-index:500;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:var(--r);padding:28px;width:100%;max-width:480px;box-shadow:0 8px 32px rgba(26,22,18,0.2)">
+    <div style="font-size:16px;font-weight:400;margin-bottom:4px">Upload Warehouse Report</div>
+    <div style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:20px">Drop any warehouse inventory report — PDF or Excel</div>
+    <div class="upload-inline" id="modal-drop" onclick="document.getElementById('modal-file-in').click()">
+      <div class="upload-inline-text">Drop file here or <span>click to browse</span></div>
+      <div id="modal-filename" style="margin-top:6px;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace"></div>
+      <input type="file" id="modal-file-in" accept=".pdf,.xlsx,.xls" style="display:none" />
     </div>
-
-    <!-- PAGES -->
-    <div style="flex:1">
-
-      <!-- ═══ INBOX ═══ -->
-      <div id="page-inbox" class="content">
-        <div class="two-col" style="margin-bottom:16px">
-          <!-- DROP ZONE -->
-          <div class="card" style="margin-bottom:0">
-            <div class="card-h">📂 Drop Documents</div>
-            <div class="inbox-drop" id="drop-zone" onclick="document.getElementById('file-in').click()">
-              <div class="inbox-drop-icon">↓</div>
-              <div class="inbox-drop-title">Drop files here</div>
-              <div class="inbox-drop-sub">PDF, Excel, CSV — <span>any format</span></div>
-              <input type="file" id="file-in" multiple accept=".pdf,.xlsx,.xls,.csv" style="display:none" />
-            </div>
-            <div class="file-chips" id="file-chips"></div>
-          </div>
-          <!-- PASTE ZONE -->
-          <div class="card" style="margin-bottom:0">
-            <div class="card-h">✍ Paste Text</div>
-            <textarea class="paste-area" id="paste-in" placeholder="Paste anything — WhatsApp messages, emails, notes...&#10;Japanese or English, mixed, doesn't matter."></textarea>
-          </div>
-        </div>
-
-        <div class="btn-row" style="margin-top:0;margin-bottom:16px">
-          <button class="btn btn-gold" id="process-btn" onclick="window.processInbox()">⚡ Process with Claude</button>
-          <button class="btn btn-ghost" onclick="window.clearInbox()">Clear</button>
-        </div>
-
-        <div class="loader" id="inbox-loader">
-          <div class="spin"></div>
-          <div class="loader-txt"><span>Claude</span> is reading and classifying...</div>
-        </div>
-
-        <!-- RESULTS -->
-        <div id="inbox-results"></div>
-      </div>
-
-      <!-- ═══ DOC LOG ═══ -->
-      <div id="page-doclog" class="content" style="display:none">
-        <div id="doclog-content"></div>
-      </div>
-
-      <!-- ═══ CONTEXT ═══ -->
-      <div id="page-context" class="content" style="display:none">
-        <input class="ctx-search" id="ctx-search" placeholder="Search context... (entity, topic, keyword)" oninput="window.searchContext(this.value)" />
-        <div id="ctx-list"></div>
-      </div>
-
-      <!-- ═══ STOCK ═══ -->
-      <div id="page-stock" class="content" style="display:none">
-        <div id="stock-content"></div>
-      </div>
-
-      <!-- ═══ MOVEMENTS ═══ -->
-      <div id="page-movements" class="content" style="display:none">
-        <div class="two-col" style="margin-bottom:16px">
-          <div class="card" style="margin-bottom:0">
-            <div class="card-h">Add Movement</div>
-            <div class="form-grid">
-              <div class="fg"><div class="fl">Type</div><select class="fs" id="m-type"><option value="out">↑ Outbound</option><option value="in">↓ Inbound</option></select></div>
-              <div class="fg"><div class="fl">Date</div><input type="date" class="fi" id="m-date"/></div>
-              <div class="fg"><div class="fl">SKU</div><select class="fs" id="m-sku"></select></div>
-              <div class="fg"><div class="fl">Quantity</div><input type="number" class="fi" id="m-qty" placeholder="0"/></div>
-              <div class="fg full"><div class="fl">Reference</div><input type="text" class="fi" id="m-ref" placeholder="Customer, order, note..."/></div>
-              <div class="fg"><div class="fl">Warehouse</div><select class="fs" id="m-wh"><option>DSV Funabashi</option><option>Sagawa (Hyutech Noorin)</option><option>Silver Family Warehouse</option></select></div>
-              <div class="fg"><div class="fl">Carrier</div><input type="text" class="fi" id="m-carrier" placeholder="Yamato, Sagawa..."/></div>
-            </div>
-            <div class="btn-row"><button class="btn btn-gold" onclick="window.addMovement()">+ Add</button><button class="btn btn-ghost" onclick="window.clearMovForm()">Clear</button></div>
-          </div>
-          <div class="card" style="margin-bottom:0">
-            <div class="card-h">This Month</div>
-            <div id="mov-month"></div>
-          </div>
-        </div>
-        <div class="tbl-wrap">
-          <table class="tbl"><thead><tr><th>Date</th><th>Type</th><th>SKU</th><th>Product</th><th class="right">Qty</th><th>Reference</th><th>Warehouse</th><th>Source</th></tr></thead>
-          <tbody id="mov-tbody"></tbody></table>
-        </div>
-      </div>
-
-      <!-- ═══ RECONCILIATION ═══ -->
-      <div id="page-reconciliation" class="content" style="display:none">
-        <!-- MONTH SELECTOR -->
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-          <div style="font-size:11px;color:var(--t2)">Month:</div>
-          <select class="fs" id="recon-month-sel" onchange="window.renderRecon()" style="width:160px"></select>
-          <div id="recon-status-pill" style="font-size:10px;padding:4px 10px;border-radius:10px;font-family:'IBM Plex Mono',monospace"></div>
-        </div>
-        <!-- COMPLETENESS PANEL -->
-        <div id="recon-completeness" style="margin-bottom:16px"></div>
-        <!-- INLINE UPLOAD FOR MISSING REPORTS -->
-        <div id="recon-upload-area" style="display:none;margin-bottom:16px">
-          <div class="card" style="margin-bottom:0;border-left:3px solid var(--gold)">
-            <div class="card-h">Upload Missing Report</div>
-            <div id="recon-upload-hint" style="font-size:12px;color:var(--t2);margin-bottom:12px"></div>
-            <div class="inbox-drop" id="recon-drop" onclick="document.getElementById('recon-file-in').click()" style="padding:20px">
-              <div class="inbox-drop-icon" style="font-size:20px">↓</div>
-              <div class="inbox-drop-title" style="font-size:12px">Drop warehouse report here</div>
-              <div class="inbox-drop-sub">PDF or Excel</div>
-              <input type="file" id="recon-file-in" accept=".pdf,.xlsx,.xls" style="display:none" />
-            </div>
-            <div class="loader" id="recon-upload-loader" style="margin-top:10px">
-              <div class="spin"></div>
-              <div class="loader-txt"><span>Claude</span> is reading the report...</div>
-            </div>
-          </div>
-        </div>
-        <!-- RESULTS -->
-        <div id="recon-results"></div>
-      </div>
-
-      <!-- ═══ COSTS ═══ -->
-      <div id="page-costs" class="content" style="display:none">
-        <div id="costs-content"></div>
-      </div>
-
-      <!-- ═══ INSIGHTS ═══ -->
-      <div id="page-insights" class="content" style="display:none">
-        <div class="card" style="margin-bottom:16px">
-          <div class="card-h">✦ AI Business Intelligence</div>
-          <div style="font-size:12px;color:var(--t2);margin-bottom:12px;line-height:1.7">Claude analyzes your operational data and accumulated context knowledge to surface patterns, risks, and opportunities specific to Nina Pita Japan.</div>
-          <button class="btn btn-gold" id="insights-btn" onclick="window.generateInsights()">✦ Generate Insights</button>
-          <div class="loader" id="insights-loader"><div class="spin"></div><div class="loader-txt"><span>Claude</span> is analyzing operations data and context...</div></div>
-        </div>
-        <div id="insights-content"><div class="empty"><div class="empty-icon">✦</div>Click Generate to analyze your data.<br>More context = better insights.</div></div>
-      </div>
-
-      <!-- ═══ ALERTS ═══ -->
-      <div id="page-alerts" class="content" style="display:none">
-        <div id="alerts-content"></div>
-      </div>
-
-      <!-- ═══ SETTINGS ═══ -->
-      <div id="page-settings" class="content" style="display:none">
-        <div class="two-col">
-          <div class="card">
-            <div class="card-h">SKU Registry</div>
-            <div id="sku-list" style="max-height:400px;overflow-y:auto"></div>
-            <div class="btn-row"><button class="btn btn-ghost" onclick="window.addSkuPrompt()">+ Add SKU</button></div>
-          </div>
-          <div class="card">
-            <div class="card-h">Partners & Warehouses</div>
-            <div id="partner-list"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-h">Company</div>
-          <div id="company-info"></div>
-        </div>
-      </div>
-
+    <div class="loader" id="modal-loader" style="margin-top:12px"><div class="spin"></div>Claude is reading the report...</div>
+    <div id="modal-preview" style="display:none;margin-top:14px"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="upload-btn" id="modal-save-btn" style="display:none" onclick="window.saveUploadedReport()">Save Report</button>
+      <button class="upload-btn secondary" onclick="window.closeUploadModal()">Cancel</button>
     </div>
   </div>
 </div>
 
 <script>
-// ═══ CONSTANTS ═══════════════════════════════════════════
-const _V         = 2; // auth version
-const _GIST      = '7c5d935263e84d038e72306307a9ca20';
-const _TOKEN     = ['ghp_UYZTmVyngEZuWoNH','WxNofcrq7pQMMC2aX3Cn'].join('');
-const _AKEY      = ['sk-ant-api03-FCJxgK2ueH96NEja','PxcVpZ3ybf_rbx1eEHvT2pLRX','HwsxeOqnliHkaSJ-bXhLMteLlPP','agFSDDDesaOojIwsxA-VR10XQAA'].join('');
-const _MODEL     = 'claude-sonnet-4-6';
-const _PWS       = {'Japan2026':true,'Admin2026':true};
+// ═══ CONFIG ══════════════════════════════════════════════
+const _V      = 3;
+const _GIST   = '920f7f1e8a9395854860a14ea7200f17';
+const _TOKEN  = ['ghp_UYZTmVyngEZuWoNH','WxNofcrq7pQMMC2aX3Cn'].join('');
+const _AKEY   = ['sk-ant-api03-FCJxgK2ueH96NEja','PxcVpZ3ybf_rbx1eEHvT2pLRX','HwsxeOqnliHkaSJ-bXhLMteLlPP','agFSDDDesaOojIwsxA-VR10XQAA'].join('');
+const _MODEL  = 'claude-sonnet-4-6';
+const _PWS    = {'Japan2026':true};
 
-const AFFECTS_ALL = ['Stock/Inventory','Movements','Costs/Finance','Compliance/Regulatory','Supplier/Manufacturer','Customer','Logistics','Legal/Contracts','Quality/Specs','Other'];
-
-const CAT_COLORS = {
-  'Inventory Report':'b-gold','Delivery Notification':'b-teal','Cost Invoice':'b-orange',
-  'Product Specification':'b-blue','Customs Document':'b-purple','Communication':'b-green',
-  'Quality Certificate':'b-blue','Shipping Document':'b-teal','Contract':'b-purple',
-  'Exhibition/Marketing':'b-green','Other':'b-gray'
+// Known Nina Pita SKUs — seeded, never ask user to configure
+const SKUS = {
+  J001:'Nina Large φ15cm 100g', J002:'Nina Medium 14cm 80g', J003:'Nina Oval 20×11cm 100g',
+  J007:'Nina Mini 11cm 45g', J016:'Nina Cocktail φ6cm 18g', J017:'Nina One Bite 4.5cm 7g',
+  J018:'Nina One Bite Dark 4.5cm 7g', J023:'Nina Cocktail Dark φ6cm 18g',
+  J033:'Nina Breadsticks 19cm 25g', J070:'Nina X-Large φ18cm 200g',
+  J073:'Nina Breasticks 28g', J075:'Nina Onebite 4.5cm 7g',
+  J076:'Nina Onebite Dark 4.5cm 7g', J080:'Nina Cocktail φ6cm 18g',
+  J081:'Nina Cocktail Dark φ6cm 18g', J096:'Nina Laffa Medium φ25cm 95g',
+  UA095:'Nina Laffa Large 130g 30cm', RJ02:'4 Nina Medium 14cm 80g', RJ07:'Nina Mini Pitamini 11cm 45g'
 };
 
 // ═══ DB ══════════════════════════════════════════════════
-let _st = null;
+// Data structure:
+// npv3_reports  = { "2026-02_DSV Funabashi": { month, warehouse, file, skus: { J001: {opening, inbound, reported_out, closing} } } }
+// npv3_movements = [ { id, date, sku, type, qty, warehouse, source } ]
+
+let _syncT = null;
 const DB = {
-  get:(k,d=null)=>{try{const v=JSON.parse(localStorage.getItem('npv2_'+k)||'null');return v!==null?v:d}catch{return d}},
-  set:(k,v)=>{localStorage.setItem('npv2_'+k,JSON.stringify(v));_syncKey(k,v)},
-  context:()=>DB.get('context',[]),
-  snapshots:()=>DB.get('snapshots',[]),
+  get:(k,d=null)=>{try{const v=JSON.parse(localStorage.getItem('npv3_'+k)||'null');return v!==null?v:d}catch{return d}},
+  set:(k,v)=>{localStorage.setItem('npv3_'+k,JSON.stringify(v));_bgsync(k,v)},
+  reports:()=>DB.get('reports',{}),
   movements:()=>DB.get('movements',[]),
-  skus:()=>DB.get('skus',{}),
-  costs:()=>DB.get('costs',[]),
-  doclog:()=>DB.get('doclog',[]),
 };
 
-let _syncT=null;
-function _showSync(s,msg){const el=document.getElementById('sync-pill');if(!el)return;el.className='sync-pill '+s;el.textContent=msg;if(s==='saved')setTimeout(()=>{el.className='sync-pill';el.textContent='Ready'},3000)}
-async function _syncKey(k,v){
-  clearTimeout(_syncT);_showSync('syncing','Syncing...');
-  _syncT=setTimeout(async()=>{
-    try{
-      await fetch(`https://api.github.com/gists/${_GIST}`,{method:'PATCH',headers:{'Authorization':`token ${_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({files:{[`npv2_${k}.json`]:{content:JSON.stringify(v)}}})});
-      _showSync('saved','Saved ✓');
-      document.getElementById('last-sync').textContent='Synced '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    }catch{_showSync('error','Sync failed')}
-  },1500);
-}
-async function _gistPull(){
-  try{
-    const r=await fetch(`https://api.github.com/gists/${_GIST}`,{headers:{'Authorization':`token ${_TOKEN}`}});
-    if(!r.ok)return;
-    const g=await r.json();
-    let n=0;
-    for(const f of Object.keys(g.files||{})){
-      if(f.startsWith('npv2_')&&g.files[f]?.content){
-        try{const k=f.replace('npv2_','').replace('.json','');localStorage.setItem('npv2_'+k,g.files[f].content);n++}catch{}
-      }
-    }
-    if(n)console.log(`Pulled ${n} keys from Gist`);
-  }catch(e){console.warn('Gist pull:',e.message)}
-}
+function _showSync(s,t){const el=document.getElementById('sync-bar');if(!el)return;el.style.display='block';el.className='sync-bar '+s;el.textContent=t;if(s==='saved')setTimeout(()=>{el.style.display='none'},3000)}
+function _bgsync(k,v){clearTimeout(_syncT);_showSync('syncing','Syncing...');_syncT=setTimeout(async()=>{try{await fetch(`https://api.github.com/gists/${_GIST}`,{method:'PATCH',headers:{'Authorization':`token ${_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({files:{[`npv3_${k}.json`]:{content:JSON.stringify(v)}}})});_showSync('saved','Saved')}catch{_showSync('error','Sync failed')}},1500)}
+async function _pull(){try{const r=await fetch(`https://api.github.com/gists/${_GIST}`,{headers:{'Authorization':`token ${_TOKEN}`}});if(!r.ok)return;const g=await r.json();for(const f of Object.keys(g.files||{})){if(f.startsWith('npv3_')&&g.files[f]?.content){try{const k=f.replace('npv3_','').replace('.json','');localStorage.setItem('npv3_'+k,g.files[f].content)}catch{}}}}catch(e){console.warn('Gist pull:',e.message)}}
 
 // ═══ AUTH ════════════════════════════════════════════════
 window.authSubmit=function(){
   const pw=document.getElementById('auth-pw').value.trim();
   if(!_PWS[pw]){document.getElementById('auth-err').textContent='Incorrect password';document.getElementById('auth-pw').value='';return}
-  localStorage.setItem('npv2_auth',JSON.stringify({pw,v:_V}));
+  localStorage.setItem('npv3_auth',JSON.stringify({pw,v:_V}));
   document.getElementById('auth').classList.add('gone');
-  document.getElementById('shell').style.display='flex';
+  document.getElementById('app').style.display='block';
   _boot();
 };
-function _checkAuth(){
-  try{const s=JSON.parse(localStorage.getItem('npv2_auth')||'null');if(s&&s.v===_V&&_PWS[s.pw]){document.getElementById('auth').classList.add('gone');document.getElementById('shell').style.display='flex';_boot();return}}catch{}
-}
+(function(){
+  try{const s=JSON.parse(localStorage.getItem('npv3_auth')||'null');if(s&&s.v===_V&&_PWS[s.pw]){document.getElementById('auth').classList.add('gone');document.getElementById('app').style.display='block';_boot();return}}catch{}
+})();
 
 // ═══ BOOT ════════════════════════════════════════════════
 async function _boot(){
   _showSync('syncing','Loading...');
-  await _gistPull();
-  _seedMaster();
-  document.getElementById('m-date').value=new Date().toISOString().split('T')[0];
-  const hash=window.location.hash.replace('#','');
-  const valid=['inbox','context','stock','movements','reconciliation','costs','insights','alerts','settings'];
-  window.nav(valid.includes(hash)?hash:'inbox');
-  _updateStats();
+  await _pull();
+  _render();
   _showSync('saved','Ready');
 }
 
-// ═══ NAVIGATION ══════════════════════════════════════════
-const PAGES=['inbox','doclog','context','stock','movements','reconciliation','costs','insights','alerts','settings'];
-const PAGE_META={
-  inbox:{title:'Inbox',sub:'Drop anything in — documents, text, messages'},
-  context:{title:'Context',sub:'Everything the system knows about the business'},
-  stock:{title:'Stock',sub:'Current inventory across all warehouses'},
-  movements:{title:'Movements',sub:'All inbound and outbound stock movements'},
-  reconciliation:{title:'Reconciliation',sub:'Verify stock numbers against reports'},
-  costs:{title:'Costs',sub:'Partner invoices and operational expenses'},
-  insights:{title:'Insights',sub:'AI analysis of operations and context'},
-  alerts:{title:'Alerts',sub:'Items requiring attention'},
-  settings:{title:'Settings',sub:'SKUs, partners, warehouses, master data'},
-  doclog:{title:'Document Log',sub:'Every file and text ever processed through the Inbox'}
-};
-window.nav=function(name){
-  window.location.hash=name;
-  PAGES.forEach(p=>{
-    document.getElementById('page-'+p).style.display=p===name?'block':'none';
-    const nav=document.getElementById('nav-'+p);
-    if(nav)nav.classList.toggle('active',p===name);
+// ═══ CORE DATA LOGIC ════════════════════════════════════
+
+// Get all months that have any data
+function _allMonths(){
+  const months=new Set();
+  Object.keys(DB.reports()).forEach(k=>months.add(k.split('_')[0]));
+  DB.movements().forEach(m=>{if(m.date)months.add(m.date.substring(0,7))});
+  // Always include current month
+  months.add(new Date().toISOString().substring(0,7));
+  return Array.from(months).sort().reverse();
+}
+
+// Get reports for a specific month
+function _reportsForMonth(month){
+  const all=DB.reports();
+  const result={};
+  Object.entries(all).forEach(([k,v])=>{if(k.startsWith(month+'_'))result[v.warehouse]=v});
+  return result;
+}
+
+// Get movements for a specific month
+function _movementsForMonth(month){
+  return DB.movements().filter(m=>m.date&&m.date.startsWith(month));
+}
+
+// Detect warehouses active in a month from movements
+function _warehousesInMonth(month){
+  const whs=new Set();
+  _movementsForMonth(month).forEach(m=>{if(m.warehouse)whs.add(m.warehouse)});
+  return Array.from(whs);
+}
+
+// Calculate reconciliation for a month
+function _calcMonth(month){
+  const reports=_reportsForMonth(month);
+  const movs=_movementsForMonth(month);
+  const activeWhs=_warehousesInMonth(month);
+  const uploadedWhs=Object.keys(reports);
+
+  // All warehouses = union of detected + uploaded
+  const allWhs=[...new Set([...activeWhs,...uploadedWhs])];
+
+  // Movements aggregated per SKU
+  const movOut={},movIn={};
+  movs.forEach(m=>{
+    if(m.type==='out')movOut[m.sku]=(movOut[m.sku]||0)+m.qty;
+    else movIn[m.sku]=(movIn[m.sku]||0)+m.qty;
   });
-  const m=PAGE_META[name]||{title:name,sub:''};
-  document.getElementById('page-title').textContent=m.title;
-  document.getElementById('page-sub').textContent=m.sub;
-  if(name==='stock')_renderStock();
-  if(name==='movements'){_populateSkuSelect();_renderMovements()}
-  if(name==='reconciliation')window.renderRecon();
-  if(name==='context')_renderContext('');
-  if(name==='costs')_renderCosts();
-  if(name==='alerts')_renderAlerts();
-  if(name==='settings')_renderSettings();
-  if(name==='doclog')_renderDocLog();
+
+  // Per-SKU reconciliation across all uploaded warehouses
+  const skuData={};
+  uploadedWhs.forEach(wh=>{
+    Object.entries(reports[wh].skus||{}).forEach(([sku,d])=>{
+      if(!skuData[sku])skuData[sku]={name:SKUS[sku]||d.name||sku,opening:0,inbound:0,reportedOut:0,reportedClosing:0};
+      skuData[sku].opening+=d.opening||0;
+      skuData[sku].inbound+=d.inbound||0;
+      skuData[sku].reportedOut+=d.reported_out||0;
+      skuData[sku].reportedClosing+=d.closing||0;
+    });
+  });
+
+  // Calculate expected closing per SKU using movements
+  const rows=Object.entries(skuData).map(([sku,d])=>{
+    const movOutQty=movOut[sku]||0;
+    const movInQty=movIn[sku]||0;
+    const calculated=d.opening+d.inbound-movOutQty+movInQty;
+    const gap=uploadedWhs.length>0?d.reportedClosing-calculated:null;
+    const yuiGap=d.reportedOut-movOutQty;
+    return {sku,name:d.name,opening:d.opening,inbound:d.inbound,reportedOut:d.reportedOut,movOut:movOutQty,calculated,reportedClosing:d.reportedClosing,gap,yuiGap};
+  });
+
+  // Missing warehouses = active in movements but no report uploaded
+  const missingWhs=activeWhs.filter(wh=>!uploadedWhs.includes(wh));
+
+  // Status
+  const now=new Date();
+  const mDate=new Date(month+'-15');
+  const isCurrent=mDate.getFullYear()===now.getFullYear()&&mDate.getMonth()===now.getMonth();
+  const hasGaps=rows.some(r=>r.gap!==null&&Math.abs(r.gap)>0);
+  const hasYuiGaps=rows.some(r=>Math.abs(r.yuiGap||0)>0);
+
+  let status;
+  if(isCurrent) status='in_progress';
+  else if(uploadedWhs.length===0) status='no_reports';
+  else if(missingWhs.length>0) status='incomplete';
+  else if(hasGaps) status='gap';
+  else status='balanced';
+
+  return {month,allWhs,uploadedWhs,missingWhs,rows,movOut,movIn,status,hasGaps,hasYuiGaps,isCurrent};
+}
+
+// ═══ RENDER ══════════════════════════════════════════════
+function _render(){
+  const months=_allMonths();
+
+  // Hero stats
+  _renderHero(months);
+
+  // Month list
+  const el=document.getElementById('months-list');
+  if(!months.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">No data yet.<br>Upload a warehouse report to get started.</div></div>';
+    return;
+  }
+
+  const STATUS_CONFIG={
+    balanced:{dot:'dot-green',label:'Balanced',cls:'ok'},
+    incomplete:{dot:'dot-amber',label:'Incomplete',cls:'warn'},
+    gap:{dot:'dot-red',label:'Gap detected',cls:'gap'},
+    no_reports:{dot:'dot-gray',label:'No reports',cls:'miss'},
+    in_progress:{dot:'dot-blue',label:'In progress',cls:'prog'}
+  };
+
+  el.innerHTML=months.map(m=>{
+    const calc=_calcMonth(m);
+    const cfg=STATUS_CONFIG[calc.status]||STATUS_CONFIG.no_reports;
+    const d=new Date(m+'-15');
+    const label=d.toLocaleDateString('en-GB',{year:'numeric',month:'long'});
+    const totalCases=calc.rows.reduce((s,r)=>s+(calc.status==='balanced'?r.reportedClosing:r.calculated),0);
+    return `<div class="month-row" onclick="window.showMonth('${m}')">
+      <div class="month-dot ${cfg.dot}"></div>
+      <div class="month-name">${label}</div>
+      <div style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;margin-right:8px">${totalCases>0?totalCases+' cases':''}</div>
+      <div class="month-status ${cfg.cls}">${cfg.label}</div>
+      <div class="month-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+
+function _renderHero(months){
+  // Total stock = sum of most recent balanced month closing, or latest calculated
+  let totalCases=0;
+  let lastRecon='—';
+  let lastReconSub='no reconciled month yet';
+  const whs=new Set();
+
+  for(const m of months){
+    const calc=_calcMonth(m);
+    if(calc.status==='balanced'||calc.status==='in_progress'){
+      totalCases=calc.rows.reduce((s,r)=>s+(calc.status==='balanced'?r.reportedClosing:r.calculated),0);
+      calc.allWhs.forEach(w=>whs.add(w));
+      if(calc.status==='balanced'){
+        lastRecon=new Date(m+'-15').toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+        lastReconSub='last reconciled month';
+      }
+      break;
+    }
+  }
+
+  // This month outbound
+  const now=new Date();
+  const thisMonth=now.toISOString().substring(0,7);
+  const thisMovs=_movementsForMonth(thisMonth);
+  const thisOut=thisMovs.filter(m=>m.type==='out').reduce((s,m)=>s+m.qty,0);
+
+  document.getElementById('hero-total').textContent=totalCases||'—';
+  document.getElementById('hero-warehouses').textContent=whs.size>0?Array.from(whs).join(', '):'across all warehouses';
+  document.getElementById('hero-out').textContent=thisOut||'—';
+  document.getElementById('hero-out-sub').textContent='cases shipped this month';
+  document.getElementById('hero-recon').innerHTML=lastRecon==='—'?`<em>—</em>`:lastRecon;
+  document.getElementById('hero-recon-sub').textContent=lastReconSub;
+  document.getElementById('hdr-sub').textContent=`Updated ${new Date().toLocaleDateString('en-GB',{dateStyle:'medium'})}`;
+}
+
+window.showMonth=function(month){
+  const calc=_calcMonth(month);
+  const d=new Date(month+'-15');
+  const label=d.toLocaleDateString('en-GB',{year:'numeric',month:'long'});
+
+  const BADGES={
+    balanced:{cls:'badge-green',text:'Balanced ✓'},
+    incomplete:{cls:'badge-amber',text:'Incomplete'},
+    gap:{cls:'badge-red',text:'Gap Detected'},
+    no_reports:{cls:'badge-gray',text:'No Reports'},
+    in_progress:{cls:'badge-blue',text:'In Progress'}
+  };
+  const badge=BADGES[calc.status]||BADGES.no_reports;
+
+  document.getElementById('detail-month-title').textContent=label;
+  const badgeEl=document.getElementById('detail-badge');
+  badgeEl.className='detail-badge '+badge.cls;
+  badgeEl.textContent=badge.text;
+
+  const body=document.getElementById('detail-body');
+
+  // Build warehouse checklist
+  const whHtml=calc.allWhs.length===0?'':`
+    <div style="margin-bottom:20px">
+      <div class="section-label">Warehouse Reports</div>
+      <div class="wh-list">
+        ${calc.uploadedWhs.map(wh=>`
+          <div class="wh-item ok">
+            <span class="wh-check">✓</span>
+            <span class="wh-name">${wh}</span>
+            <span class="wh-detail ok">${_reportsForMonth(month)[wh]?.file||'Uploaded'}</span>
+          </div>`).join('')}
+        ${calc.missingWhs.map(wh=>`
+          <div class="wh-item missing">
+            <span class="wh-check">✗</span>
+            <span class="wh-name">${wh}</span>
+            <span class="wh-detail missing">Report missing — detected from movements</span>
+          </div>
+          <div class="upload-inline" onclick="window.showUploadModalForWarehouse('${wh}','${month}')" style="margin-top:-4px;border-radius:0 0 var(--rs) var(--rs);border-top:none">
+            <div class="upload-inline-text">Upload ${wh} report for ${label} <span>→</span></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  // Plain language summary
+  let summaryHtml='';
+  if(calc.status==='balanced'){
+    summaryHtml=`<div class="plain-msg">Everything checks out for <strong>${label}</strong>. All warehouse reports are in and the numbers balance.</div>`;
+  } else if(calc.status==='in_progress'){
+    summaryHtml=`<div class="plain-msg">This is the current month — still in progress. Upload warehouse reports at month end to reconcile.</div>`;
+  } else if(calc.status==='no_reports'){
+    summaryHtml=`<div class="plain-msg">No warehouse reports uploaded for <strong>${label}</strong> yet. Upload reports to see the reconciliation.</div>`;
+  } else if(calc.status==='incomplete'){
+    summaryHtml=`<div class="plain-msg">Missing reports from: <strong>${calc.missingWhs.join(', ')}</strong>. Upload them above to complete this month.</div>`;
+  } else if(calc.status==='gap'){
+    const gapRows=calc.rows.filter(r=>Math.abs(r.gap||0)>0);
+    summaryHtml=`<div class="plain-msg">Found discrepancies in <strong>${gapRows.length} SKU${gapRows.length!==1?'s':''}</strong>:<br>${gapRows.map(r=>`<strong>${r.name}</strong> — expected ${r.calculated} cases, warehouse reports ${r.reportedClosing} (gap: ${r.gap>0?'+':''}${r.gap})`).join('<br>')}</div>`;
+  }
+
+  // Formula bar
+  const formulaHtml=`
+    <div class="formula-bar">
+      <span class="f-part">Opening Stock</span>
+      <span class="f-op">+</span><span class="f-part">Inbound</span>
+      <span class="f-op">−</span><span class="f-part">Outbound</span>
+      <span class="f-eq">=</span><span class="f-part">Expected Closing</span>
+      <span class="f-op">vs</span><span class="f-part">Warehouse Report</span>
+    </div>`;
+
+  // Table — only show if reports uploaded
+  let tableHtml='';
+  if(calc.rows.length>0){
+    tableHtml=`
+      <div class="recon-table-wrap">
+        <table class="recon-tbl">
+          <thead><tr>
+            <th>SKU</th><th>Product</th>
+            <th>Opening</th><th>+In</th><th>−Out</th>
+            <th>Expected</th><th>Reported</th><th>Gap</th>
+          </tr></thead>
+          <tbody>
+            ${calc.rows.map(r=>{
+              const hasGap=r.gap!==null&&Math.abs(r.gap)>0;
+              return `<tr class="${hasGap?'gap-row':''}">
+                <td><span class="sku-code">${r.sku}</span></td>
+                <td>${r.name}</td>
+                <td>${r.opening}</td>
+                <td class="${r.inbound>0?'ok-val':'neutral'}">${r.inbound>0?'+'+r.inbound:'—'}</td>
+                <td class="${r.movOut>0?'gap-val':'neutral'}">${r.movOut>0?'−'+r.movOut:'—'}</td>
+                <td style="font-weight:500;color:${r.calculated<0?'var(--red)':r.calculated<=5?'var(--amber)':'var(--ink)'}">${r.calculated}</td>
+                <td class="neutral">${r.reportedClosing}</td>
+                <td class="${hasGap?'gap-val':'neutral'}">${r.gap!==null?(Math.abs(r.gap)===0?'✓':(r.gap>0?'+':'')+r.gap):'—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  body.innerHTML=summaryHtml+whHtml+(calc.rows.length>0?formulaHtml+tableHtml:'');
+
+  const panel=document.getElementById('detail-panel');
+  panel.classList.add('show');
+  panel.scrollIntoView({behavior:'smooth',block:'start'});
+};
+
+// ═══ UPLOAD ══════════════════════════════════════════════
+let _pendingReport=null;
+
+window.showUploadModal=function(wh,month){
+  document.getElementById('upload-modal').style.display='flex';
+  document.getElementById('modal-filename').textContent='';
+  document.getElementById('modal-preview').style.display='none';
+  document.getElementById('modal-save-btn').style.display='none';
+  _pendingReport=null;
+  if(wh)document.getElementById('modal-preview').dataset.wh=wh;
+  if(month)document.getElementById('modal-preview').dataset.month=month;
+};
+window.showUploadModalForWarehouse=function(wh,month){window.showUploadModal(wh,month)};
+window.closeUploadModal=function(){document.getElementById('upload-modal').style.display='none';_pendingReport=null};
+
+// Drop/click on modal
+const mDrop=document.getElementById('modal-drop');
+const mFile=document.getElementById('modal-file-in');
+mDrop.addEventListener('dragover',e=>{e.preventDefault();mDrop.classList.add('drag')});
+mDrop.addEventListener('dragleave',()=>mDrop.classList.remove('drag'));
+mDrop.addEventListener('drop',e=>{e.preventDefault();mDrop.classList.remove('drag');_processUpload(e.dataTransfer.files[0])});
+mFile.addEventListener('change',e=>_processUpload(e.target.files[0]));
+
+async function _processUpload(file){
+  if(!file)return;
+  document.getElementById('modal-filename').textContent=file.name;
+  document.getElementById('modal-loader').classList.add('on');
+  document.getElementById('modal-preview').style.display='none';
+  document.getElementById('modal-save-btn').style.display='none';
+  try{
+    const skuList=Object.entries(SKUS).map(([k,v])=>`${k}: ${v}`).join('\n');
+    let extra=[], text='';
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='pdf'){
+      const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('read failed'));r.readAsDataURL(file)});
+      extra=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`[PDF: ${file.name}]`}];
+    } else {
+      text=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'binary'});let t='';wb.SheetNames.forEach(n=>{t+=XLSX.utils.sheet_to_csv(wb.Sheets[n])});res(t)}catch(err){rej(err)}};r.onerror=()=>rej(new Error('read failed'));r.readAsBinaryString(file)});
+    }
+
+    const raw=await _claude(`Warehouse inventory report for Nina Pita Japan (Dutch frozen pita brand).
+Known SKUs:\n${skuList}
+
+This is a monthly warehouse report. Extract:
+1. Which month does this cover? (YYYY-MM)
+2. Which warehouse is this from? (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse — or detect from content)
+3. Per SKU data:
+   - opening: 前月在庫 = previous month stock = opening balance for this month
+   - inbound: 入庫数 = received this month
+   - reported_out: total of ALL 出庫数 columns = total shipped out per this report
+   - closing: 在庫数 = closing stock at end of month
+
+Return ONLY JSON:
+{
+  "month": "YYYY-MM",
+  "warehouse": "warehouse name",
+  "skus": {
+    "J001": {"name":"Nina Large φ15cm 100g","opening":45,"inbound":0,"reported_out":30,"closing":15}
+  }
+}
+Raw JSON only. ${text}`,extra);
+
+    const result=_parseJSON(raw);
+    if(!result.month||!result.warehouse)throw new Error('Could not identify month or warehouse.');
+
+    _pendingReport={file:file.name,month:result.month,warehouse:result.warehouse,skus:result.skus};
+
+    // Preview
+    const skuCount=Object.keys(result.skus||{}).length;
+    const d=new Date(result.month+'-15');
+    const monthLabel=d.toLocaleDateString('en-GB',{year:'numeric',month:'long'});
+    document.getElementById('modal-preview').innerHTML=`
+      <div style="background:var(--warm);border-radius:var(--rs);padding:14px 16px;font-size:12px;line-height:2;font-family:'DM Mono',monospace">
+        <div><span style="color:var(--ink3)">Month: </span><strong style="color:var(--ink)">${monthLabel}</strong></div>
+        <div><span style="color:var(--ink3)">Warehouse: </span><strong style="color:var(--ink)">${result.warehouse}</strong></div>
+        <div><span style="color:var(--ink3)">SKUs: </span><strong style="color:var(--ink)">${skuCount} products</strong></div>
+      </div>`;
+    document.getElementById('modal-preview').style.display='block';
+    document.getElementById('modal-save-btn').style.display='inline-flex';
+  }catch(err){
+    document.getElementById('modal-preview').innerHTML=`<div style="color:var(--red);font-size:12px;font-family:'DM Mono',monospace">Error: ${err.message}</div>`;
+    document.getElementById('modal-preview').style.display='block';
+  }finally{
+    document.getElementById('modal-loader').classList.remove('on');
+  }
+}
+
+window.saveUploadedReport=function(){
+  if(!_pendingReport)return;
+  const reports=DB.reports();
+  const key=`${_pendingReport.month}_${_pendingReport.warehouse}`;
+  reports[key]={
+    month:_pendingReport.month,
+    warehouse:_pendingReport.warehouse,
+    file:_pendingReport.file,
+    uploaded:new Date().toISOString(),
+    skus:_pendingReport.skus
+  };
+  DB.set('reports',reports);
+  _pendingReport=null;
+  window.closeUploadModal();
+  _render();
+  // Re-open the month detail
+  const month=reports[Object.keys(reports).pop()]?.month;
+  if(month)setTimeout(()=>window.showMonth(month),100);
 };
 
 // ═══ CLAUDE API ══════════════════════════════════════════
-async function _claude(prompt, extra=[]){
+async function _claude(prompt,extra=[]){
   const content=[...extra,{type:'text',text:prompt}];
   const r=await fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
@@ -579,975 +845,18 @@ async function _claude(prompt, extra=[]){
     body:JSON.stringify({model:_MODEL,max_tokens:4000,messages:[{role:'user',content}]})
   });
   const d=await r.json();
-  if(!r.ok||d.type==='error')throw new Error(d?.error?.message||JSON.stringify(d));
+  if(!r.ok||d.type==='error')throw new Error(d?.error?.message||'API error');
   if(!d.content?.[0])throw new Error('Empty response');
   return d.content[0].text;
 }
 function _parseJSON(raw){
   let s=raw.replace(/```json|```/g,'').trim();
-  // Remove any trailing incomplete content
-  if(!s.endsWith(']')&&!s.endsWith('}')){
-    // Try to find last complete object/array
-    const lastObj=s.lastIndexOf('},');
-    const lastArr=s.lastIndexOf(']');
-    const isArr=s.trimStart().startsWith('[');
-    if(isArr&&lastObj>0){s=s.substring(0,lastObj+1)+']';}
-    else if(!isArr){
-      // Find matching closing brace
-      let depth=0,lastGood=0;
-      for(let i=0;i<s.length;i++){if(s[i]==='{')depth++;else if(s[i]==='}'){depth--;if(depth===0)lastGood=i;}}
-      if(lastGood>0)s=s.substring(0,lastGood+1);
-    }
-  }
-  try{return JSON.parse(s);}
-  catch{
-    // Last resort: extract just the outer object keys we need
-    const fallback={category:'Unknown',title:'Parse error',english_summary:raw.substring(0,500),affects:[],action_now:'context_only',context_entry:'Document processed but response was malformed.',movements:[],snapshot_items:[],cost_items:[]};
-    const catMatch=raw.match(/"category"\s*:\s*"([^"]+)"/);
-    const titleMatch=raw.match(/"title"\s*:\s*"([^"]+)"/);
-    if(catMatch)fallback.category=catMatch[1];
-    if(titleMatch)fallback.title=titleMatch[1];
-    return fallback;
+  if(!s.endsWith('}')){const li=s.lastIndexOf('}');if(li>0)s=s.substring(0,li+1)}
+  try{return JSON.parse(s)}catch{
+    const m=raw.match(/"month"\s*:\s*"([^"]+)"/);const w=raw.match(/"warehouse"\s*:\s*"([^"]+)"/);
+    return {month:m?.[1]||null,warehouse:w?.[1]||null,skus:{}};
   }
 }
-
-// ═══ INBOX ═══════════════════════════════════════════════
-let _files=[];
-
-const dz=document.getElementById('drop-zone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
-dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
-dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');_addFiles(Array.from(e.dataTransfer.files))});
-document.getElementById('file-in').addEventListener('change',e=>_addFiles(Array.from(e.target.files)));
-
-function _addFiles(files){files.forEach(f=>{if(!_files.find(u=>u.name===f.name))_files.push(f)});_renderChips()}
-function _renderChips(){
-  document.getElementById('file-chips').innerHTML=_files.map((f,i)=>`
-    <div class="chip"><span>${f.name.endsWith('.pdf')?'📄':'📊'}</span><span>${f.name}</span>
-    <span class="chip-x" onclick="_files.splice(${i},1);_renderChips()">✕</span></div>`).join('');
-}
-window.clearInbox=function(){_files=[];_renderChips();document.getElementById('paste-in').value='';document.getElementById('inbox-results').innerHTML=''};
-
-async function _readFile(f){
-  const ext=f.name.split('.').pop().toLowerCase();
-  if(ext==='pdf'){const b64=await _toB64(f);return{type:'pdf',name:f.name,content:b64}}
-  else{const csv=await _readExcel(f);return{type:'text',name:f.name,content:csv}}
-}
-function _toB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(f)})}
-function _readExcel(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'binary'});let t='';wb.SheetNames.forEach(n=>{t+=XLSX.utils.sheet_to_csv(wb.Sheets[n])});res(t)}catch(err){rej(err)}};r.onerror=()=>rej(new Error('Excel read failed'));r.readAsBinaryString(f)})}
-
-window.processInbox=async function(){
-  const text=document.getElementById('paste-in').value.trim();
-  if(!_files.length&&!text){alert('Add files or paste text first.');return}
-  const btn=document.getElementById('process-btn');
-  btn.disabled=true;
-  document.getElementById('inbox-loader').classList.add('on');
-  document.getElementById('inbox-results').innerHTML='';
-  try{
-    const inputs=[];
-    for(const f of _files){
-      const data=await _readFile(f);
-      if(data.type==='pdf'){
-        inputs.push({source:'file',name:f.name,extra:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:data.content}},{type:'text',text:`[PDF: ${f.name}]`}],text:''});
-      } else {
-        inputs.push({source:'file',name:f.name,extra:[],text:`[File: ${f.name}]\n${data.content}`});
-      }
-    }
-    if(text)inputs.push({source:'paste',name:'Pasted text',extra:[],text:text});
-
-    const skus=DB.skus();
-    const skuList=Object.values(skus).map(s=>`${s.code}: ${s.name}`).join('\n')||'(no SKUs loaded yet)';
-    const knownCats=_getKnownCategories();
-    const results=[];
-    const loaderTxt=document.querySelector('#inbox-loader .loader-txt');
-
-    // Process ONE AT A TIME — each input = one Claude call
-    for(let idx=0; idx<inputs.length; idx++){
-      const inp=inputs[idx];
-      loaderTxt.innerHTML=`<span>Claude</span> processing ${idx+1} of ${inputs.length}: ${inp.name}`;
-
-      const prompt=`You are the intelligence layer of Nina Pita Japan operations platform.
-Nina Pita imports frozen pita from Israel, operates in Japan via DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse.
-
-Known SKUs: ${skuList}
-Known categories: ${knownCats.join(', ')} — create new if none fit.
-
-INPUT NAME: "${inp.name}"
-
-Return ONLY a JSON object (no markdown, no explanation). Keep english_summary concise (max 200 words). Keep context_entry to 2-3 sentences.
-
-{
-  "category": "best label",
-  "is_new_category": false,
-  "title": "short English title",
-  "english_summary": "clean English version of content, concise",
-  "affects": ["Stock/Inventory","Movements","Costs/Finance","Compliance/Regulatory","Supplier/Manufacturer","Customer","Logistics","Legal/Contracts","Quality/Specs","Other"],
-  "action_now": "create_movement | update_stock | add_cost | context_only",
-  "action_potential": "brief note",
-  "extracted_data": {},
-  "context_entry": "2-3 sentence fact for knowledge base",
-  "movements": [{"type":"out","date":"YYYY-MM-DD","sku":"J001","product_name":"name","qty":1,"destination":"","carrier":"","warehouse":"DSV Funabashi","expired":false,"reference":""}],
-  "snapshot_items": [{"sku":"J001","name":"name","warehouse":"DSV Funabashi","current_stock":0,"opening_stock":0,"inbound":0,"reported_outbound":0,"lot":"","expiry":"","broken":false}],
-  "cost_items": [{"partner":"","category":"","amount_jpy":0,"period":"YYYY-MM","description":""}],
-  "recon_month": "YYYY-MM or null — the month this inventory report covers",
-  "recon_warehouse": "warehouse name this report is from, or null"
-}
-
-Rules:
-- movements: delivery/shipment docs only. Empty array [] otherwise.
-- snapshot_items: inventory reports only. Empty array [] otherwise. For each SKU include: opening_stock (前月在庫), inbound (入庫数), reported_outbound (sum of all 出庫数 columns), current_stock (在庫数 = closing stock).
-- cost_items: invoices/billing only. Empty array [] otherwise.
-- recon_month: for inventory reports, the YYYY-MM period the report covers (e.g. Inventory_202602.xlsx = 2026-02). Null for non-inventory docs.
-- recon_warehouse: for inventory reports, which warehouse (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse, or detected from content). Null for non-inventory docs.
-- WhatsApp: extract ALL deliveries, one entry per SKU per message.
-- Return raw JSON only — no triple backticks.
-
-${inp.text}`;
-
-      try{
-        const raw=await _claude(prompt, inp.extra);
-        const result=_parseJSON(raw);
-        result._source=inp.name;
-        result._sourceType=inp.source;
-        results.push(result);
-        // Show results as they come in — don't wait for all
-        _renderInboxResults(results);
-      }catch(itemErr){
-        // One document failed — show error card but continue with others
-        results.push({
-          _source:inp.name,_sourceType:inp.source,_error:itemErr.message,
-          category:'Error',title:`Failed: ${inp.name}`,english_summary:'',
-          affects:[],action_now:'context_only',context_entry:'',
-          movements:[],snapshot_items:[],cost_items:[]
-        });
-        _renderInboxResults(results);
-      }
-    }// end for loop
-  }catch(err){
-    document.getElementById('inbox-results').innerHTML+=`<div style="color:var(--red);font-size:12px;padding:12px;font-family:'IBM Plex Mono',monospace">Fatal error: ${err.message}</div>`;
-  }finally{
-    btn.disabled=false;
-    document.getElementById('inbox-loader').classList.remove('on');
-    document.querySelector('#inbox-loader .loader-txt').innerHTML='<span>Claude</span> is reading and classifying...';
-  }
-};
-
-function _getKnownCategories(){
-  const ctx=DB.context();
-  const cats=new Set(['Inventory Report','Delivery Notification','Cost Invoice','Product Specification','Customs Document','Communication','Quality Certificate','Shipping Document','Contract','Exhibition/Marketing']);
-  ctx.forEach(e=>{if(e.category)cats.add(e.category)});
-  return Array.from(cats);
-}
-
-// Store results globally for bulk save
-let _inboxResults = [];
-
-function _renderInboxResults(results){
-  _inboxResults = results;
-  const el=document.getElementById('inbox-results');
-  if(!results.length){el.innerHTML='<div class="empty"><div class="empty-icon">◌</div>Nothing to show.</div>';return}
-
-  // Count by type
-  const needsReview=results.filter(r=>r.movements?.length||r.snapshot_items?.length||r.cost_items?.length);
-  const contextOnly=results.filter(r=>!r.movements?.length&&!r.snapshot_items?.length&&!r.cost_items?.length&&!r._error);
-  const errors=results.filter(r=>r._error);
-  const confirmed=results.filter(r=>r._confirmed);
-
-  const summaryBar=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <div style="flex:1;min-width:200px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:3px">${results.length} document${results.length!==1?'s':''} classified</div>
-      <div style="font-size:10px;color:var(--t2);font-family:'IBM Plex Mono',monospace">
-        ${needsReview.length} need review · ${contextOnly.length} context only · ${errors.length?errors.length+' errors · ':''} ${confirmed.length} saved
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${contextOnly.filter(r=>!r._confirmed).length>0?`<button class="btn btn-green" style="font-size:11px;padding:7px 12px" onclick="window.saveAllContext()">Save ${contextOnly.filter(r=>!r._confirmed).length} Context Entries</button>`:''}
-      ${needsReview.filter(r=>!r._confirmed).length>0?`<button class="btn btn-gold" style="font-size:11px;padding:7px 12px" onclick="window.saveAllReviewed()">Save All ${needsReview.filter(r=>!r._confirmed).length} Operational</button>`:''}
-      <button class="btn btn-ghost" style="font-size:11px;padding:7px 12px" onclick="window.saveEverything()">Save Everything</button>
-    </div>
-  </div>`;
-
-  el.innerHTML=summaryBar+results.map((r,i)=>{
-    const catColor=CAT_COLORS[r.category]||'b-gray';
-    const hasMovs=r.movements?.length>0;
-    const hasSnap=r.snapshot_items?.length>0;
-    const hasCosts=r.cost_items?.length>0;
-    const affectsHtml=(r.affects||[]).map(a=>`<span class="affect-pill active">${a}</span>`).join('');
-    const movsHtml=hasMovs?`<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace;margin-bottom:6px">${r.movements.length} movement${r.movements.length!==1?'s':''} extracted:</div>${r.movements.map(m=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--b1);font-size:11px"><span style="color:${m.type==='in'?'var(--green)':'var(--red)'}">↑ ${m.type.toUpperCase()}</span>${m.expired?'<span class="badge b-red" style="font-size:8px">EXPIRED</span>':''}<span class="mono">${m.sku||'?'}</span><span style="color:var(--t2)">${m.product_name||''}</span><span class="mono" style="color:var(--gold)">${m.qty} cases</span><span style="color:var(--t3)">${m.date||''}</span><span style="color:var(--t2);font-size:10px">${m.destination||m.carrier||''}</span></div>`).join('')}</div>`:'';
-    const snapHtml=hasSnap?`<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace;margin-bottom:6px">${r.snapshot_items.length} SKU stock entries:</div>${r.snapshot_items.map(s=>`<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1);font-size:11px"><span class="mono" style="color:var(--gold)">${s.sku}</span><span style="color:var(--t2)">${s.name}</span><span class="mono" style="color:var(--t1);font-weight:600">${s.current_stock}</span><span style="color:var(--t3);font-size:10px">${s.warehouse||''}</span>${s.broken?'<span class="badge b-red" style="font-size:8px">BROKEN</span>':''}</div>`).join('')}</div>`:'';
-    const costsHtml=hasCosts?`<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace;margin-bottom:6px">Cost items:</div>${r.cost_items.map(c=>`<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1);font-size:11px"><span style="color:var(--t2)">${c.partner}</span><span class="mono" style="color:var(--gold)">¥${(c.amount_jpy||0).toLocaleString()}</span><span style="color:var(--t3)">${c.period||''}</span><span style="color:var(--t3);font-size:10px">${c.category}</span></div>`).join('')}</div>`:'';
-
-    return `<div class="classify-card" id="classify-${i}">
-      <div class="classify-header" onclick="_toggleClassify(${i})">
-        <span class="badge ${catColor}">${r.category}</span>
-        <span style="font-weight:600;font-size:12px;flex:1">${r.title||r._source}</span>
-        ${hasMovs?`<span class="badge b-teal">${r.movements.length} mov</span>`:''}
-        ${hasSnap?`<span class="badge b-gold">${r.snapshot_items.length} SKUs</span>`:''}
-        ${hasCosts?`<span class="badge b-orange">¥ costs</span>`:''}
-        <span style="color:var(--t3);font-size:10px;font-family:\'IBM Plex Mono\',monospace">${r._source}</span>
-      </div>
-      <div class="classify-body" id="classify-body-${i}">
-        <div class="classify-source">Source: ${r._source} · Action: ${r.action_now}</div>
-        <div class="classify-summary">${r.english_summary||''}</div>
-        <div class="affects-pills">${affectsHtml}</div>
-        <div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace;margin-bottom:6px">Knowledge entry:</div>
-        <div class="extracted-data">${r.context_entry||''}</div>
-        ${movsHtml}${snapHtml}${costsHtml}
-        <div class="btn-row">
-          <button class="btn btn-green" onclick="_confirmItem(${i}, ${JSON.stringify(r).replace(/"/g,'&quot;')})">✓ Confirm &amp; Save</button>
-          <button class="btn btn-ghost" onclick="document.getElementById('classify-${i}').style.opacity='.3'">Skip</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // Auto-expand single result
-  if(results.length===1)document.getElementById('classify-body-0').classList.add('open');
-}
-
-window._toggleClassify=function(i){document.getElementById('classify-body-'+i).classList.toggle('open')};
-
-window._confirmItem=function(i, r){
-  // 1. Always save to context
-  const ctx=DB.context();
-  ctx.unshift({
-    id:Date.now(),
-    timestamp:new Date().toISOString(),
-    category:r.category,
-    title:r.title||r._source,
-    source:r._source,
-    summary:r.english_summary||'',
-    affects:r.affects||[],
-    action_now:r.action_now,
-    action_potential:r.action_potential||'',
-    context_entry:r.context_entry||'',
-    extracted_data:r.extracted_data||{}
-  });
-  DB.set('context',ctx);
-
-  // Save reconciliation data if this is an inventory report
-  if(r.recon_month && r.snapshot_items?.length){
-    const recons=DB.get('recons',{});
-    const month=r.recon_month;
-    const wh=r.recon_warehouse||'Unknown Warehouse';
-    if(!recons[month])recons[month]={month,warehouses:{},movements_outbound:{},movements_inbound:{}};
-    // Build per-SKU data from snapshot_items
-    const skuData={};
-    r.snapshot_items.forEach(s=>{
-      skuData[s.sku]={
-        name:s.name,
-        opening:s.opening_stock||0,
-        inbound:s.inbound||0,
-        reported_outbound:s.reported_outbound||0,
-        reported_closing:s.current_stock||0,
-        broken:s.broken||false
-      };
-    });
-    recons[month].warehouses[wh]={
-      file:r._source,
-      uploaded:new Date().toISOString(),
-      skus:skuData
-    };
-    DB.set('recons',recons);
-  }
-
-  // Log this document permanently
-  const dlog=DB.doclog();
-  dlog.unshift({
-    id:Date.now(),
-    timestamp:new Date().toISOString(),
-    filename:r._source,
-    category:r.category||'Unknown',
-    title:r.title||r._source,
-    action:r.action_now||'context_only',
-    affects:r.affects||[],
-    movements_count:r.movements?.length||0,
-    snapshot_count:r.snapshot_items?.length||0,
-    costs_count:r.cost_items?.length||0,
-  });
-  DB.set('doclog',dlog);
-
-  // 2. Save movements
-  if(r.movements?.length){
-    const movs=DB.movements();
-    r.movements.forEach(m=>{
-      const skus=DB.skus();
-      movs.unshift({id:Date.now()+Math.random(),type:m.type,date:m.date||new Date().toISOString().split('T')[0],sku:m.sku||'UNKNOWN',qty:m.qty||0,ref:m.reference||m.destination||'',carrier:m.carrier||'',warehouse:m.warehouse||'DSV Funabashi',source:'inbox',name:m.product_name||m.sku||'Unknown',expired:m.expired||false});
-      if(m.sku&&m.product_name&&!skus[m.sku]){skus[m.sku]={code:m.sku,name:m.product_name};DB.set('skus',skus)}
-    });
-    DB.set('movements',movs);
-  }
-
-  // 3. Save snapshot items
-  if(r.snapshot_items?.length){
-    const snaps=DB.snapshots();
-    const skus=DB.skus();
-    const snap={file:r._source,date:new Date().toISOString(),warehouse:r.snapshot_items[0]?.warehouse||'DSV Funabashi',items:r.snapshot_items.map(s=>({lot:s.lot||'',sku:s.sku,name:s.name,expiry:s.expiry||'',received:0,prev_stock:0,current_stock:s.current_stock||0,broken:s.broken||false}))};
-    snap.items.forEach(s=>{if(s.sku&&s.name&&!skus[s.sku]){skus[s.sku]={code:s.sku,name:s.name}}});
-    DB.set('skus',skus);
-    snaps.unshift(snap);
-    DB.set('snapshots',snaps);
-  }
-
-  // 4. Save costs
-  if(r.cost_items?.length){
-    const costs=DB.costs();
-    r.cost_items.forEach(c=>costs.unshift({id:Date.now()+Math.random(),partner:c.partner,category:c.category,amount_jpy:c.amount_jpy||0,period:c.period||'',description:c.description||'',source:r._source,timestamp:new Date().toISOString()}));
-    DB.set('costs',costs);
-  }
-
-  // Mark as confirmed
-  if(i>=0){
-    if(_inboxResults[i])_inboxResults[i]._confirmed=true;
-    const card=document.getElementById('classify-'+i);
-    if(card){card.classList.add('confirmed');card.querySelector('.classify-header').innerHTML=`<span class="badge b-green">✓ Saved</span><span style="font-size:12px;color:var(--t2)">${r.title||r._source}</span>`}
-  }
-  _updateStats();
-};
-
-// Bulk save — context only entries
-window.saveAllContext=function(){
-  _inboxResults.forEach((r,i)=>{
-    if(!r._confirmed&&!r.movements?.length&&!r.snapshot_items?.length&&!r.cost_items?.length&&!r._error){
-      window._confirmItem(i,r);
-    }
-  });
-  _renderInboxResults(_inboxResults);
-};
-
-// Bulk save — operational entries (movements, stock, costs)
-window.saveAllReviewed=function(){
-  _inboxResults.forEach((r,i)=>{
-    if(!r._confirmed&&(r.movements?.length||r.snapshot_items?.length||r.cost_items?.length)&&!r._error){
-      window._confirmItem(i,r);
-    }
-  });
-  _renderInboxResults(_inboxResults);
-};
-
-// Save everything at once
-window.saveEverything=function(){
-  if(!confirm('Save all '+_inboxResults.filter(r=>!r._confirmed&&!r._error).length+' items? Review the list first to make sure everything looks correct.'))return;
-  _inboxResults.forEach((r,i)=>{
-    if(!r._confirmed&&!r._error)window._confirmItem(i,r);
-  });
-  _renderInboxResults(_inboxResults);
-};
-
-// ═══ CONTEXT ═════════════════════════════════════════════
-window.searchContext=function(q){_renderContext(q)};
-function _renderContext(q){
-  const ctx=DB.context();
-  const el=document.getElementById('ctx-list');
-  if(!ctx.length){el.innerHTML='<div class="empty"><div class="empty-icon">◈</div>No context yet.<br>Process documents in the Inbox to build knowledge.</div>';return}
-  const filtered=q?ctx.filter(e=>(e.title+e.context_entry+e.category+(e.affects||[]).join('')).toLowerCase().includes(q.toLowerCase())):ctx;
-  if(!filtered.length){el.innerHTML='<div class="empty"><div class="empty-icon">◌</div>No matches found.</div>';return}
-
-  // Group by month
-  const byMonth={};
-  filtered.forEach(e=>{const k=new Date(e.timestamp).toLocaleDateString('en-GB',{year:'numeric',month:'long'});if(!byMonth[k])byMonth[k]=[];byMonth[k].push(e)});
-
-  el.innerHTML=Object.entries(byMonth).map(([month,entries])=>`
-    <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);padding:14px 4px 8px;border-bottom:1px solid var(--b1);margin-bottom:10px;font-family:\'IBM Plex Mono\',monospace">${month} · ${entries.length} entries</div>
-    ${entries.map(e=>{
-      const catColor=CAT_COLORS[e.category]||'b-gray';
-      return `<div class="ctx-entry">
-        <div class="ctx-entry-header">
-          <span class="badge ${catColor}">${e.category}</span>
-          <span class="ctx-entry-title">${e.title}</span>
-          <span class="ctx-entry-date">${new Date(e.timestamp).toLocaleDateString('en-GB',{dateStyle:'short'})}</span>
-        </div>
-        <div class="ctx-entry-body">${e.context_entry}</div>
-        ${e.affects?.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${e.affects.map(a=>`<span class="affect-pill active">${a}</span>`).join('')}</div>`:''}
-        <div style="font-size:9px;color:var(--t3);margin-top:6px;font-family:\'IBM Plex Mono\',monospace">Source: ${e.source}</div>
-      </div>`;
-    }).join('')}`).join('');
-}
-
-// ═══ STOCK ═══════════════════════════════════════════════
-function _getStock(){
-  const snaps=DB.snapshots();if(!snaps.length)return{};
-  const latest=snaps[0];
-  const cutoff=_snapCutoff(latest);
-  const stock={};
-  latest.items.forEach(item=>{
-    if(!stock[item.sku])stock[item.sku]={sku:item.sku,name:item.name,stock:0,broken:0,warehouse:latest.warehouse||'DSV Funabashi'};
-    item.broken?stock[item.sku].broken+=item.current_stock:stock[item.sku].stock+=item.current_stock;
-  });
-  DB.movements().forEach(m=>{
-    if(new Date(m.date)<=cutoff||!stock[m.sku])return;
-    m.type==='in'?stock[m.sku].stock+=m.qty:stock[m.sku].stock-=m.qty;
-  });
-  return stock;
-}
-function _snapCutoff(snap){
-  const match=snap.file.match(/(\d{4})(\d{2})/);
-  if(match){const y=parseInt(match[1]),mo=parseInt(match[2]);return new Date(y,mo,0,23,59,59)}
-  const d=new Date(snap.date);d.setDate(d.getDate()-90);return d;
-}
-function _renderStock(){
-  const snaps=DB.snapshots();
-  const el=document.getElementById('stock-content');
-  if(!snaps.length){el.innerHTML='<div class="empty"><div class="empty-icon">▦</div>No stock data yet.<br>Process an inventory report in the Inbox.</div>';return}
-  const stock=_getStock();
-  const rows=Object.values(stock).sort((a,b)=>b.stock-a.stock);
-  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace">Based on: ${snaps[0].file}</div></div>
-  <div class="tbl-wrap"><table class="tbl"><thead><tr><th>SKU</th><th>Product</th><th>Warehouse</th><th class="right">Cases</th><th class="right">Broken</th><th>Status</th></tr></thead>
-  <tbody>${rows.map(r=>`<tr><td class="mono" style="color:var(--gold)">${r.sku}</td><td>${r.name}</td><td style="font-size:10px;color:var(--t2)">${r.warehouse}</td>
-  <td class="mono right" style="font-size:14px;font-weight:600;color:${r.stock<0?'var(--red)':r.stock<=5?'var(--orange)':'var(--t1)'}">${r.stock}</td>
-  <td class="mono right" style="color:${r.broken>0?'var(--red)':'var(--t3)'}">${r.broken||'—'}</td>
-  <td>${r.broken>0?'<span class="badge b-red">Broken</span>':r.stock<0?'<span class="badge b-red">Negative</span>':r.stock===0?'<span class="badge b-gray">Out</span>':r.stock<=5?'<span class="badge b-orange">Low</span>':'<span class="badge b-green">OK</span>'}</td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-
-// ═══ MOVEMENTS ═══════════════════════════════════════════
-function _populateSkuSelect(){
-  const skus=DB.skus();
-  const sel=document.getElementById('m-sku');
-  sel.innerHTML=Object.values(skus).map(s=>`<option value="${s.code}">${s.code} — ${s.name}</option>`).join('');
-  if(!Object.keys(skus).length)sel.innerHTML='<option value="">Process a report first</option>';
-}
-window.addMovement=function(){
-  const type=document.getElementById('m-type').value;
-  const date=document.getElementById('m-date').value;
-  const sku=document.getElementById('m-sku').value;
-  const qty=parseInt(document.getElementById('m-qty').value);
-  const ref=document.getElementById('m-ref').value;
-  const wh=document.getElementById('m-wh').value;
-  const carrier=document.getElementById('m-carrier').value;
-  if(!date||!sku||!qty||qty<1){alert('Fill in date, SKU and quantity.');return}
-  const movs=DB.movements();
-  const skus=DB.skus();
-  movs.unshift({id:Date.now(),type,date,sku,qty,ref,carrier,warehouse:wh,source:'manual',name:skus[sku]?.name||sku});
-  DB.set('movements',movs);
-  _updateStats();_renderMovements();window.clearMovForm();
-};
-window.clearMovForm=function(){['m-qty','m-ref','m-carrier'].forEach(id=>document.getElementById(id).value='');document.getElementById('m-date').value=new Date().toISOString().split('T')[0]};
-function _renderMovements(){
-  _populateSkuSelect();
-  const movs=DB.movements();
-  const tbody=document.getElementById('mov-tbody');
-  tbody.innerHTML=movs.length?movs.map(m=>`<tr>
-    <td class="mono">${m.date}</td>
-    <td><span style="color:${m.type==='in'?'var(--green)':'var(--red)'}">↑ ${m.type.toUpperCase()}</span></td>
-    <td class="mono" style="color:var(--gold)">${m.sku}</td>
-    <td style="font-size:11px;color:var(--t2)">${m.name||'—'}${m.expired?'<span class="badge b-red" style="font-size:8px;margin-left:5px">EXP</span>':''}</td>
-    <td class="mono right" style="color:${m.type==='in'?'var(--green)':'var(--red)'}">${m.type==='in'?'+':'−'}${m.qty}</td>
-    <td style="font-size:11px;color:var(--t2)">${m.ref||'—'}</td>
-    <td style="font-size:10px;color:var(--t3)">${m.warehouse||'—'}</td>
-    <td><span class="badge ${m.source==='inbox'?'b-gold':m.source==='manual'?'b-gray':'b-blue'}" style="font-size:8px">${m.source}</span></td>
-  </tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--t3);padding:32px">No movements yet.</td></tr>';
-
-  const now=new Date();
-  const thisM=movs.filter(m=>{const d=new Date(m.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()});
-  const out=thisM.filter(m=>m.type==='out').reduce((s,m)=>s+m.qty,0);
-  const inn=thisM.filter(m=>m.type==='in').reduce((s,m)=>s+m.qty,0);
-  document.getElementById('mov-month').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-      <div style="background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:12px"><div style="font-size:20px;font-weight:700;font-family:\'IBM Plex Mono\',monospace;color:var(--green)">${inn}</div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Cases In</div></div>
-      <div style="background:var(--red-dim);border:1px solid rgba(184,85,85,.2);border-radius:var(--rs);padding:12px"><div style="font-size:20px;font-weight:700;font-family:\'IBM Plex Mono\',monospace;color:var(--red)">${out}</div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.07em">Cases Out</div></div>
-    </div>
-    <div style="font-size:10px;color:var(--t3);text-align:center;font-family:\'IBM Plex Mono\',monospace">${thisM.length} movements this month · ${movs.length} total</div>`;
-}
-
-// ═══ RECONCILIATION ══════════════════════════════════════
-
-// Detect which warehouses are active in a given month from movements
-function _detectWarehousesInMonth(month){
-  const movs=DB.movements();
-  const whs=new Set();
-  movs.forEach(m=>{
-    if(m.date&&m.date.startsWith(month)&&m.warehouse){
-      whs.add(m.warehouse);
-    }
-  });
-  return Array.from(whs);
-}
-
-// Get all months that have any data (movements or reports)
-function _getDataMonths(){
-  const months=new Set();
-  // From movements
-  DB.movements().forEach(m=>{ if(m.date&&m.date.length>=7)months.add(m.date.substring(0,7)); });
-  // From recon reports
-  const recons=DB.get('recons',{});
-  Object.keys(recons).forEach(m=>months.add(m));
-  // From snapshots
-  DB.snapshots().forEach(s=>{
-    const match=s.file.match(/(\d{4})(\d{2})/);
-    if(match)months.add(match[1]+'-'+match[2]);
-  });
-  return Array.from(months).sort().reverse();
-}
-
-function _populateMonthSel(){
-  const sel=document.getElementById('recon-month-sel');
-  if(!sel)return;
-  const months=_getDataMonths();
-  const cur=sel.value;
-  if(!months.length){sel.innerHTML='<option value="">No data yet</option>';return;}
-  sel.innerHTML=months.map(m=>{
-    const d=new Date(m+'-01');
-    const label=d.toLocaleDateString('en-GB',{year:'numeric',month:'long'});
-    return `<option value="${m}">${label}</option>`;
-  }).join('');
-  if(cur&&months.includes(cur))sel.value=cur;
-}
-
-window.renderRecon=function(){
-  _populateMonthSel();
-  const sel=document.getElementById('recon-month-sel');
-  const month=sel?.value;
-  if(!month){
-    document.getElementById('recon-results').innerHTML='<div class="empty"><div class="empty-icon">⊟</div>No data yet.<br>Process inventory reports and movements through the Inbox.</div>';
-    return;
-  }
-
-  const recons=DB.get('recons',{});
-  const monthRecon=recons[month]||{warehouses:{}};
-
-  // Detect warehouses active this month from movements
-  const activeWhs=_detectWarehousesInMonth(month);
-  // Also include warehouses that have uploaded reports for this month
-  Object.keys(monthRecon.warehouses).forEach(wh=>{ if(!activeWhs.includes(wh))activeWhs.push(wh); });
-
-  // Get movements for this month
-  const movs=DB.movements().filter(m=>m.date&&m.date.startsWith(month));
-  const outbound={};
-  const inbound={};
-  movs.forEach(m=>{
-    if(m.type==='out'){outbound[m.sku]=(outbound[m.sku]||0)+m.qty;}
-    else{inbound[m.sku]=(inbound[m.sku]||0)+m.qty;}
-  });
-
-  // Determine status
-  const uploaded=Object.keys(monthRecon.warehouses);
-  const missing=activeWhs.filter(wh=>!uploaded.includes(wh));
-  const now=new Date();
-  const monthDate=new Date(month+'-01');
-  const isCurrent=monthDate.getFullYear()===now.getFullYear()&&monthDate.getMonth()===now.getMonth();
-
-  let status, statusColor, statusLabel;
-  if(isCurrent){status='in_progress';statusColor='var(--blue)';statusLabel='⏳ In Progress';}
-  else if(uploaded.length===0){status='no_reports';statusColor='var(--t3)';statusLabel='No Reports';}
-  else if(missing.length>0){status='incomplete';statusColor='var(--orange)';statusLabel='⚠ Incomplete';}
-  else{status='complete';statusColor='var(--green)';statusLabel='✓ Complete';}
-
-  // Status pill
-  const pill=document.getElementById('recon-status-pill');
-  if(pill){pill.style.background=status==='complete'?'var(--green-dim)':status==='incomplete'?'var(--orange-dim)':status==='in_progress'?'var(--blue-dim)':'rgba(100,100,100,.1)';pill.style.color=statusColor;pill.style.border=`1px solid ${statusColor}30`;pill.textContent=statusLabel;}
-
-  // Completeness panel
-  const compEl=document.getElementById('recon-completeness');
-  const uploadEl=document.getElementById('recon-upload-area');
-  const hintEl=document.getElementById('recon-upload-hint');
-
-  compEl.innerHTML=`<div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">Warehouse Reports</div>`+
-  activeWhs.map(wh=>{
-    const hasReport=!!monthRecon.warehouses[wh];
-    const whData=monthRecon.warehouses[wh];
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid ${hasReport?'rgba(61,158,107,.2)':'rgba(184,85,85,.2)'};border-radius:var(--rs);margin-bottom:6px">
-      <span style="font-size:14px">${hasReport?'✓':'✗'}</span>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:500">${wh}</div>
-        ${hasReport?`<div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace">${whData.file} · ${new Date(whData.uploaded).toLocaleDateString('en-GB',{dateStyle:'short'})}</div>`
-        :`<div style="font-size:10px;color:var(--red);font-family:'IBM Plex Mono',monospace">Report not uploaded — detected from movements</div>`}
-      </div>
-      <span class="badge ${hasReport?'b-green':'b-red'}">${hasReport?'Uploaded':'Missing'}</span>
-    </div>`;
-  }).join('')+(activeWhs.length===0?'<div style="font-size:12px;color:var(--t3)">No warehouse activity detected for this month.</div>':'');
-
-  // Show upload area if missing reports
-  if(missing.length>0&&!isCurrent){
-    uploadEl.style.display='block';
-    hintEl.textContent=`Missing: ${missing.join(', ')}. Upload their stock report for ${month} to complete reconciliation.`;
-  } else {
-    uploadEl.style.display='none';
-  }
-
-  // Results — only show if at least one report uploaded
-  const resultsEl=document.getElementById('recon-results');
-  if(!uploaded.length){
-    resultsEl.innerHTML=missing.length?'':'<div class="empty"><div class="empty-icon">⊟</div>Upload warehouse reports above to see reconciliation.</div>';
-    return;
-  }
-
-  // Build per-SKU reconciliation
-  const allSkus={};
-
-  // From uploaded warehouse reports
-  uploaded.forEach(wh=>{
-    const whData=monthRecon.warehouses[wh];
-    Object.entries(whData.skus||{}).forEach(([sku,d])=>{
-      if(!allSkus[sku])allSkus[sku]={name:d.name,warehouses:{}};
-      allSkus[sku].warehouses[wh]=d;
-    });
-  });
-
-  // Totals per SKU
-  const skuRows=Object.entries(allSkus).map(([sku,d])=>{
-    let totalOpening=0,totalInbound=0,totalReportedOut=0,totalReportedClosing=0;
-    Object.values(d.warehouses).forEach(w=>{
-      totalOpening+=w.opening||0;
-      totalInbound+=w.inbound||0;
-      totalReportedOut+=w.reported_outbound||0;
-      totalReportedClosing+=w.reported_closing||0;
-    });
-    const yuiOut=outbound[sku]||0;
-    const yuiIn=inbound[sku]||0;
-    const calculated=totalOpening+totalInbound-yuiOut;
-    const reportedCalc=totalOpening+totalInbound-totalReportedOut;
-    const gap=totalReportedClosing-calculated;
-    const yuiVsReport=totalReportedOut-yuiOut;
-    return {sku,name:d.name,totalOpening,totalInbound,totalReportedOut,totalReportedClosing,yuiOut,calculated,gap,yuiVsReport};
-  });
-
-  const hasGaps=skuRows.some(r=>Math.abs(r.gap)>0||Math.abs(r.yuiVsReport)>0);
-
-  resultsEl.innerHTML=`
-    <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">Reconciliation — ${new Date(month+'-01').toLocaleDateString('en-GB',{year:'numeric',month:'long'})}</div>
-    ${hasGaps?`<div style="background:var(--orange-dim);border:1px solid rgba(232,146,74,.2);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--orange)">⚠ Discrepancies detected — review highlighted rows</div>`
-    :`<div style="background:var(--green-dim);border:1px solid rgba(61,158,107,.2);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--green)">✓ All balances within tolerance</div>`}
-    <div class="tbl-wrap">
-      <table class="tbl">
-        <thead><tr>
-          <th>SKU</th><th>Product</th>
-          <th class="right">Opening</th>
-          <th class="right">+Inbound</th>
-          <th class="right">−Yui Out</th>
-          <th class="right">Calculated</th>
-          <th class="right">Report Closing</th>
-          <th class="right">Gap</th>
-          <th class="right">Yui vs Report</th>
-          <th>Status</th>
-        </tr></thead>
-        <tbody>
-          ${skuRows.map(r=>{
-            const hasGap=Math.abs(r.gap)>0;
-            const hasYuiGap=Math.abs(r.yuiVsReport)>0;
-            const rowBg=hasGap?'background:rgba(184,85,85,0.03)':'';
-            return `<tr style="${rowBg}">
-              <td class="mono" style="color:var(--gold)">${r.sku}</td>
-              <td style="font-size:11px">${r.name}</td>
-              <td class="mono right">${r.totalOpening}</td>
-              <td class="mono right" style="color:var(--green)">${r.totalInbound>0?'+'+r.totalInbound:'—'}</td>
-              <td class="mono right" style="color:var(--red)">${r.yuiOut>0?'−'+r.yuiOut:'—'}</td>
-              <td class="mono right" style="font-weight:700;color:${r.calculated<0?'var(--red)':r.calculated<=5?'var(--orange)':'var(--t1)'}">${r.calculated}</td>
-              <td class="mono right" style="color:var(--t2)">${r.totalReportedClosing}</td>
-              <td class="mono right" style="font-weight:600;color:${hasGap?'var(--red)':'var(--t3)'}">${hasGap?(r.gap>0?'+':'')+r.gap:'—'}</td>
-              <td class="mono right" style="color:${hasYuiGap?'var(--orange)':'var(--t3)'}">${hasYuiGap?(r.yuiVsReport>0?'+':'')+r.yuiVsReport:'—'}</td>
-              <td>${hasGap?'<span class="badge b-red">Gap</span>':hasYuiGap?'<span class="badge b-orange">Check</span>':'<span class="badge b-green">✓</span>'}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:8px;line-height:1.8">
-      <strong style="color:var(--t2)">Gap</strong> = Report Closing − Calculated (should be 0)<br>
-      <strong style="color:var(--t2)">Yui vs Report</strong> = Report outbound − Yui messages outbound (should be 0)
-    </div>`;
-};
-
-// Inline upload in reconciliation tab
-document.addEventListener('DOMContentLoaded',()=>{
-  const ri=document.getElementById('recon-file-in');
-  const rd=document.getElementById('recon-drop');
-  if(ri)ri.addEventListener('change',e=>_reconUpload(e.target.files[0]));
-  if(rd){
-    rd.addEventListener('dragover',e=>{e.preventDefault();rd.classList.add('drag')});
-    rd.addEventListener('dragleave',()=>rd.classList.remove('drag'));
-    rd.addEventListener('drop',e=>{e.preventDefault();rd.classList.remove('drag');_reconUpload(e.dataTransfer.files[0])});
-  }
-});
-
-async function _reconUpload(file){
-  if(!file)return;
-  const loader=document.getElementById('recon-upload-loader');
-  loader.classList.add('on');
-  try{
-    const data=await _readFile(file);
-    const skus=DB.skus();
-    const skuList=Object.values(skus).map(s=>`${s.code}: ${s.name}`).join('\n');
-    const extra=data.type==='pdf'?[{type:'document',source:{type:'base64',media_type:'application/pdf',data:data.content}},{type:'text',text:`[PDF: ${file.name}]`}]:[];
-    const text=data.type==='pdf'?'':`[File: ${file.name}]\n${data.content}`;
-
-    const month=document.getElementById('recon-month-sel')?.value||'';
-    const raw=await _claude(`Warehouse inventory report for Nina Pita Japan.
-Known SKUs: ${skuList}
-
-Extract per-SKU data. For each SKU include:
-- opening_stock: 前月在庫 (previous month stock = opening balance)
-- inbound: 入庫数 (received this month)
-- reported_outbound: sum of ALL 出庫数 columns (total shipped out per warehouse report)
-- reported_closing: 在庫数 (closing stock = current stock at end of month)
-
-Also identify:
-- recon_month: YYYY-MM this report covers (from filename or header, e.g. ${month})
-- recon_warehouse: which warehouse (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse, or from content)
-
-Return ONLY JSON:
-{
-  "recon_month": "YYYY-MM",
-  "recon_warehouse": "warehouse name",
-  "skus": {
-    "J001": {"name":"product name","opening_stock":0,"inbound":0,"reported_outbound":0,"reported_closing":0,"broken":false}
-  }
-}
-Raw JSON only.
-${text}`, extra);
-
-    const result=_parseJSON(raw);
-    if(!result.recon_month||!result.recon_warehouse||!result.skus){
-      throw new Error('Could not identify month or warehouse from this report.');
-    }
-
-    // Save to recons
-    const recons=DB.get('recons',{});
-    const m=result.recon_month;
-    if(!recons[m])recons[m]={month:m,warehouses:{}};
-    recons[m].warehouses[result.recon_warehouse]={
-      file:file.name,
-      uploaded:new Date().toISOString(),
-      skus:result.skus
-    };
-    DB.set('recons',recons);
-
-    // Also save to context
-    const ctx=DB.context();
-    ctx.unshift({id:Date.now(),timestamp:new Date().toISOString(),category:'Inventory Report',title:`${result.recon_warehouse} — ${m}`,source:file.name,affects:['Stock/Inventory'],action_now:'update_stock',context_entry:`${result.recon_warehouse} inventory report for ${m} uploaded. ${Object.keys(result.skus).length} SKUs tracked.`,extracted_data:{}});
-    DB.set('context',ctx);
-
-    // Also update doclog
-    const dlog=DB.doclog();
-    dlog.unshift({id:Date.now(),timestamp:new Date().toISOString(),filename:file.name,category:'Inventory Report',title:`${result.recon_warehouse} — ${m}`,action:'update_stock',affects:['Stock/Inventory'],movements_count:0,snapshot_count:Object.keys(result.skus).length,costs_count:0});
-    DB.set('doclog',dlog);
-
-    _updateStats();
-    window.renderRecon();
-    alert(`Saved: ${result.recon_warehouse} report for ${m}. ${Object.keys(result.skus).length} SKUs loaded.`);
-  }catch(err){
-    alert('Error reading report: '+err.message);
-  }finally{
-    loader.classList.remove('on');
-  }
-}
-
-// ═══ COSTS ═══════════════════════════════════════════════
-function _renderCosts(){
-  const costs=DB.costs();
-  const el=document.getElementById('costs-content');
-  if(!costs.length){el.innerHTML='<div class="empty"><div class="empty-icon">¥</div>No costs yet.<br>Process invoices in the Inbox to track spending.</div>';return}
-  const byPartner={};
-  costs.forEach(c=>{if(!byPartner[c.partner])byPartner[c.partner]={total:0,items:[]};byPartner[c.partner].total+=c.amount_jpy||0;byPartner[c.partner].items.push(c)});
-  const totalAll=costs.reduce((s,c)=>s+(c.amount_jpy||0),0);
-  el.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-    <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--gold)">¥${totalAll.toLocaleString()}</div><div class="stat-l">Total Tracked</div></div>
-    <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--blue)">${Object.keys(byPartner).length}</div><div class="stat-l">Partners</div></div>
-    <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--teal)">${costs.length}</div><div class="stat-l">Entries</div></div>
-  </div>
-  ${Object.entries(byPartner).map(([partner,data])=>`
-    <div class="card">
-      <div class="card-h">${partner} <span class="mono" style="color:var(--gold);margin-left:auto">¥${data.total.toLocaleString()}</span></div>
-      <div class="tbl-wrap" style="margin-bottom:0"><table class="tbl"><thead><tr><th>Period</th><th>Category</th><th>Description</th><th class="right">Amount</th></tr></thead>
-      <tbody>${data.items.map(c=>`<tr><td class="mono">${c.period||'—'}</td><td><span class="badge b-gray">${c.category}</span></td><td style="color:var(--t2);font-size:11px">${c.description||'—'}</td><td class="mono right" style="color:var(--gold)">¥${(c.amount_jpy||0).toLocaleString()}</td></tr>`).join('')}</tbody>
-      </table></div>
-    </div>`).join('')}`;
-}
-
-// ═══ INSIGHTS ════════════════════════════════════════════
-window.generateInsights=async function(){
-  const movs=DB.movements();const snaps=DB.snapshots();const ctx=DB.context();
-  if(!movs.length&&!snaps.length){alert('Add more data first.');return}
-  const btn=document.getElementById('insights-btn');btn.disabled=true;
-  document.getElementById('insights-loader').classList.add('on');
-  document.getElementById('insights-content').innerHTML='';
-  try{
-    const ctxSummary=ctx.slice(0,20).map(e=>`[${e.category}] ${e.context_entry}`).join('\n');
-    const stockSummary=JSON.stringify(_getStock());
-    const movSummary=JSON.stringify(movs.slice(0,60));
-    const costSummary=JSON.stringify(DB.costs().slice(0,20));
-    const raw=await _claude(`You are a business intelligence analyst for Nina Pita, a Dutch food brand with Japan operations.
-
-Analyze ALL the following data and generate 5-7 specific, commercially focused insights.
-
-BUSINESS CONTEXT:
-${ctxSummary}
-
-CURRENT STOCK:
-${stockSummary}
-
-RECENT MOVEMENTS:
-${movSummary}
-
-COSTS:
-${costSummary}
-
-Generate insights covering: product velocity, stock risks, customer patterns, cost efficiency, operational recommendations, market observations.
-Be specific — use actual product names, customer names, and numbers from the data.
-
-Return ONLY JSON array:
-[{"title":"string","body":"2-3 sentences with specific data and recommendation","type":"opportunity|risk|pattern|recommendation","priority":"high|medium|low"}]
-Raw JSON only.`);
-    const insights=_parseJSON(raw);
-    document.getElementById('insights-content').innerHTML=insights.map(ins=>`
-      <div class="insight ${ins.type}">
-        <div class="insight-h">
-          <span>${ins.type==='risk'?'⚠':ins.type==='opportunity'?'↗':ins.type==='recommendation'?'→':'◎'}</span>
-          <span>${ins.title}</span>
-          <span class="badge ${ins.priority==='high'?'b-red':ins.priority==='low'?'b-green':'b-orange'}" style="margin-left:auto">${ins.priority}</span>
-        </div>
-        <div class="insight-body">${ins.body}</div>
-      </div>`).join('');
-  }catch(err){
-    document.getElementById('insights-content').innerHTML=`<div style="color:var(--red);font-size:12px;padding:12px;font-family:\'IBM Plex Mono\',monospace">Error: ${err.message}</div>`;
-  }finally{btn.disabled=false;document.getElementById('insights-loader').classList.remove('on')}
-};
-
-// ═══ ALERTS ══════════════════════════════════════════════
-function _renderAlerts(){
-  const snaps=DB.snapshots();
-  const el=document.getElementById('alerts-content');
-  if(!snaps.length){el.innerHTML='<div class="empty"><div class="empty-icon">◉</div>No data yet.</div>';return}
-  const alerts=[];
-  const latest=snaps[0];
-  latest.items.filter(i=>i.broken).forEach(b=>alerts.push({type:'warning',title:`Broken — ${b.sku}`,detail:`${b.current_stock} cases of ${b.name} damaged. Lot: ${b.lot||'?'}. Expiry: ${b.expiry}`,action:'Confirm write-off with warehouse.'}));
-  const stock=_getStock();
-  Object.values(stock).forEach(s=>{
-    if(s.stock<0)alerts.push({type:'warning',title:`Negative Stock — ${s.sku}`,detail:`${s.name} shows ${s.stock} cases. Missing inbound or double-counted outbound.`,action:'Check for unlogged inbound deliveries.'});
-    else if(s.stock===0)alerts.push({type:'warning',title:`Out of Stock — ${s.sku}`,detail:`${s.name} has zero cases remaining.`,action:'Check reorder schedule.'});
-    else if(s.stock<=5)alerts.push({type:'info',title:`Low Stock — ${s.sku}`,detail:`Only ${s.stock} cases of ${s.name} left.`,action:'Consider reordering.'});
-  });
-  const ab=document.getElementById('alert-bar');
-  ab.classList.toggle('on',alerts.some(a=>a.type==='warning'));
-  document.getElementById('badge-alerts').style.display=alerts.length?'inline':'none';
-  document.getElementById('badge-alerts').textContent=alerts.length;
-  if(!alerts.length){el.innerHTML='<div class="empty"><div class="empty-icon">✓</div>No alerts. All stock looks clean.</div>';return}
-  el.innerHTML=alerts.map(a=>`
-    <div style="display:flex;gap:12px;align-items:flex-start;background:${a.type==='warning'?'var(--red-dim)':'var(--blue-dim)'};border:1px solid ${a.type==='warning'?'rgba(184,85,85,.2)':'rgba(85,119,170,.2)'};border-radius:var(--r);padding:14px 16px;margin-bottom:8px">
-      <div style="font-size:16px;flex-shrink:0">${a.type==='warning'?'⚠':'ℹ'}</div>
-      <div><div style="font-weight:600;margin-bottom:3px">${a.title}</div><div style="font-size:12px;color:var(--t2);margin-bottom:4px">${a.detail}</div>
-      <div style="font-size:11px;color:${a.type==='warning'?'var(--red)':'var(--blue)'}">→ ${a.action}</div></div>
-    </div>`).join('');
-}
-
-// ═══ DOCUMENT LOG ═══════════════════════════════════════
-function _renderDocLog(){
-  const log=DB.doclog();
-  const el=document.getElementById('doclog-content');
-  if(!log.length){
-    el.innerHTML='<div class="empty"><div class="empty-icon">◫</div>No documents processed yet.<br>Everything you confirm through Inbox appears here.</div>';
-    return;
-  }
-  // Group by month
-  const byMonth={};
-  log.forEach(e=>{
-    const k=new Date(e.timestamp).toLocaleDateString('en-GB',{year:'numeric',month:'long'});
-    if(!byMonth[k])byMonth[k]=[];
-    byMonth[k].push(e);
-  });
-  // Stats
-  const total=log.length;
-  const withMovs=log.filter(e=>e.movements_count>0).length;
-  const withStock=log.filter(e=>e.snapshot_count>0).length;
-  const withCosts=log.filter(e=>e.costs_count>0).length;
-  el.innerHTML=`
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
-      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--gold)">${total}</div><div class="stat-l">Total Processed</div></div>
-      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--teal)">${withMovs}</div><div class="stat-l">Had Movements</div></div>
-      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--blue)">${withStock}</div><div class="stat-l">Had Stock Data</div></div>
-      <div class="card" style="margin-bottom:0"><div class="stat-n" style="color:var(--orange)">${withCosts}</div><div class="stat-l">Had Costs</div></div>
-    </div>
-    ${Object.entries(byMonth).map(([month,entries])=>`
-      <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3);padding:14px 4px 8px;border-bottom:1px solid var(--b1);margin-bottom:10px;font-family:'IBM Plex Mono',monospace">${month} · ${entries.length} document${entries.length!==1?'s':''}</div>
-      ${entries.map(e=>{
-        const catColor=CAT_COLORS[e.category]||'b-gray';
-        return `<div class="card" style="margin-bottom:8px;padding:12px 14px">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span class="badge ${catColor}">${e.category}</span>
-            <span style="font-weight:500;font-size:12px;flex:1">${e.title||e.filename}</span>
-            ${e.movements_count>0?`<span class="badge b-teal">${e.movements_count} mov</span>`:''}
-            ${e.snapshot_count>0?`<span class="badge b-gold">${e.snapshot_count} SKUs</span>`:''}
-            ${e.costs_count>0?`<span class="badge b-orange">¥ costs</span>`:''}
-            <span style="font-size:9px;color:var(--t3);font-family:'IBM Plex Mono',monospace">${new Date(e.timestamp).toLocaleDateString('en-GB',{dateStyle:'short'})}</span>
-          </div>
-          <div style="font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-top:5px">
-            📎 ${e.filename}
-          </div>
-        </div>`;
-      }).join('')}`).join('')}`;
-}
-
-// ═══ SETTINGS ════════════════════════════════════════════
-function _renderSettings(){
-  const skus=DB.skus();
-  const sl=document.getElementById('sku-list');
-  const skuArr=Object.values(skus).sort((a,b)=>a.code.localeCompare(b.code));
-  sl.innerHTML=skuArr.length?`<div class="tbl-wrap" style="margin-bottom:0"><table class="tbl"><thead><tr><th>Code</th><th>Name</th></tr></thead><tbody>${skuArr.map(s=>`<tr><td class="mono" style="color:var(--gold)">${s.code}</td><td style="font-size:11px">${s.name}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--t3);font-size:12px">No SKUs yet.</div>';
-
-  const co=document.getElementById('company-info');
-  const company=DB.get('company',{});
-  co.innerHTML=company.name?`<div style="font-size:12px;color:var(--t2);line-height:2"><span style="color:var(--t3);font-family:\'IBM Plex Mono\',monospace;font-size:10px">Legal: </span>${company.legal||'—'}<br><span style="color:var(--t3);font-family:\'IBM Plex Mono\',monospace;font-size:10px">Rep: </span>${company.representative||'—'}<br><span style="color:var(--t3);font-family:\'IBM Plex Mono\',monospace;font-size:10px">Address: </span>${company.address||'—'}<br><span style="color:var(--t3);font-family:\'IBM Plex Mono\',monospace;font-size:10px">Tax ID: </span>${company.tax_id||'—'}</div>`:'<div style="color:var(--t3);font-size:12px">No company data yet.</div>';
-
-  const pl=document.getElementById('partner-list');
-  const partners=DB.get('partners',[]);
-  pl.innerHTML=partners.length?partners.map(p=>`<div style="padding:10px 0;border-bottom:1px solid var(--b1)"><div style="font-weight:600;font-size:12px;margin-bottom:2px">${p.name}</div><div style="font-size:10px;color:var(--t3);font-family:\'IBM Plex Mono\',monospace">${p.type} · ${p.role||''}</div></div>`).join(''):'<div style="color:var(--t3);font-size:12px">No partners yet. Process partner documents in Inbox.</div>';
-}
-window.addSkuPrompt=function(){
-  const code=prompt('SKU code (e.g. J099):');if(!code)return;
-  const name=prompt('Product name:');if(!name)return;
-  const skus=DB.skus();skus[code.toUpperCase()]={code:code.toUpperCase(),name};
-  DB.set('skus',skus);_renderSettings();_updateStats();
-};
-
-// ═══ STATS ═══════════════════════════════════════════════
-function _updateStats(){
-  const snaps=DB.snapshots();
-  const movs=DB.movements();
-  const ctx=DB.context();
-  const stock=snaps.length?_getStock():{};
-  const vals=Object.values(stock);
-  const cases=vals.reduce((s,r)=>s+Math.max(0,r.stock),0);
-  const alerts=vals.filter(r=>r.stock<=0||r.broken>0).length;
-  document.getElementById('st-skus').textContent=vals.length||Object.keys(DB.skus()).length||'—';
-  document.getElementById('st-cases').textContent=cases||'—';
-  document.getElementById('st-movs').textContent=movs.length||'—';
-  document.getElementById('st-ctx').textContent=ctx.length||'—';
-  document.getElementById('st-alerts').textContent=alerts||'—';
-  document.getElementById('badge-alerts').style.display=alerts>0?'inline':'none';
-  document.getElementById('badge-alerts').textContent=alerts;
-  document.getElementById('alert-bar').classList.toggle('on',alerts>0);
-  if(snaps.length)document.getElementById('last-sync').textContent='Last report: '+new Date(snaps[0].date).toLocaleDateString('en-GB',{dateStyle:'medium'});
-}
-
-// ═══ SEED ════════════════════════════════════════════════
-function _seedMaster(){
-  if(DB.get('master_v2'))return;
-  DB.set('company',{name:'Ninapita Japan K.K.',legal:'Ninapita Japan 株式会社',representative:'Pierre Nehmeh',address:'3-24-8 Nishi Shinbashi, Minato-ku, Tokyo 105-0003',office:'Kanda Ocean Building 4F-402',tax_id:'T9010401178038',phone:'080-3152-7707'});
-  DB.set('partners',[
-    {id:'dsv',name:'DSV Solutions Co., Ltd.',type:'warehouse',role:'Main frozen warehouse + logistics',warehouse:'DSV Funabashi',contacts:[{name:'Minori Mita',email:'minori.mita@jp.dsv.com'},{name:'Sharifah Farahanim',email:'sharifah.farahanim@dsv.com'}]},
-    {id:'sagawa',name:'佐川急便 (Sagawa Express)',type:'carrier',role:'Carrier + Sagawa warehouse (Hyutech Noorin)',warehouse:'Sagawa (Hyutech Noorin)',customer_code:'7602660300'},
-    {id:'silver',name:'株式会社シルバーライフ (Silver Life)',type:'warehouse',role:'Silver Family Warehouse',warehouse:'Silver Family Warehouse',tel:'03-6300-5622'},
-    {id:'azabu',name:'有限会社麻布帝里加 (Azabu Terika)',type:'operations',role:'Japan operations manager',contacts:[{name:'Yui Muto',email:'610muto5@gmail.com'},{name:'Hidetaka Muto',email:'mutoh18@gmail.com'}]},
-    {id:'tmf',name:'Japan Outsourcing Solutions K.K.',type:'accounting',role:'Accounting & Tax',contacts:[{name:'Wojciech Zukowski',email:'wojciech.zukowski@tmf-group.com'}]},
-    {id:'customs',name:'J9NAB NAX Japan Co., Ltd.',type:'customs',role:'Customs broker',broker_code:'23297'}
-  ]);
-  DB.set('skus',{
-    J001:{code:'J001',name:'Nina Large φ15cm 100g'},J002:{code:'J002',name:'72 pita Nina Medium 14cm 80g'},
-    J003:{code:'J003',name:'Nina Oval 20×11cm 100g'},J007:{code:'J007',name:'Nina Mini 11cm 45g'},
-    J016:{code:'J016',name:'Nina Cocktail φ6cm 18g'},J017:{code:'J017',name:'Nina One Bite 4.5cm 7g'},
-    J018:{code:'J018',name:'Nina One Bite Dark 4.5cm 7g'},J023:{code:'J023',name:'Nina Cocktail Dark φ6cm 18g'},
-    J033:{code:'J033',name:'Nina Wheat Breadsticks 19cm 25g'},J070:{code:'J070',name:'Nina X-Large φ18cm 200g'},
-    J073:{code:'J073',name:'Nina Breasticks 28g'},J075:{code:'J075',name:'Nina Onebite 4.5cm 7g'},
-    J076:{code:'J076',name:'Nina Onebite Dark 4.5cm 7g'},J080:{code:'J080',name:'Nina Cocktail φ6cm 18g'},
-    J081:{code:'J081',name:'Nina Cocktail Dark φ6cm 18g'},J096:{code:'J096',name:'Nina Laffa Medium φ25cm 95g'},
-    UA095:{code:'UA095',name:'Nina Laffa Large 130g 30cm'},RJ02:{code:'RJ02',name:'4 Nina Medium 14cm 80g'},
-    RJ07:{code:'RJ07',name:'Nina Mini Pitamini 11cm 45g'}
-  });
-  DB.set('master_v2',true);
-}
-
-// ═══ BOOT ════════════════════════════════════════════════
-_checkAuth();
 </script>
 </body>
 </html>
