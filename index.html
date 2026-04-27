@@ -828,18 +828,25 @@ WAREHOUSE NAMES TO USE:
 ${warehouseHint}${monthHint}
 
 COLUMN NAMES IN JAPANESE REPORTS:
-- 商品コード or ロット = SKU / lot
+- 商品コード = SKU code
 - 品名 = product name
+- 賞味期限 = expiry date
 - 前月在庫 = opening stock (previous month closing = this month opening)
 - 入庫数 = inbound received this month
 - 在庫数 = closing stock (current stock at end of month)
-- 出庫数 = outbound shipped (may appear many times as 出庫数1, 出庫数2... — sum them ALL)
+- 出庫数 = outbound (appears many times: 出庫数, 出庫数2... — sum ALL)
 
-Extract per-SKU data. For each SKU found:
-- opening = 前月在庫 value
-- inbound = 入庫数 value
-- reported_out = SUM of ALL 出庫数 columns for that SKU
-- closing = 在庫数 value
+CRITICAL:
+- Each SKU has MULTIPLE LOT ROWS — sum them all per SKU code
+- BROKEN lots: if 賞味期限 contains "BROKEN" — EXCLUDE that lot entirely from all numbers
+- Only include healthy (non-broken) lots
+- Aggregate all healthy lots per SKU
+
+Per-SKU totals (healthy lots only, all lots summed):
+- opening = SUM of 前月在庫
+- inbound = SUM of 入庫数
+- reported_out = SUM of all 出庫数 columns
+- closing = SUM of 在庫数
 
 Return ONLY JSON — no explanation, no markdown:
 {
