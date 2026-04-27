@@ -762,34 +762,96 @@ async function _processUpload(file){
     const skuList=Object.entries(SKUS).map(([k,v])=>`${k}: ${v}`).join('\n');
     let extra=[], text='';
     const ext=file.name.split('.').pop().toLowerCase();
+
+    // Detect warehouse from filename before sending to Claude
+    const fname=file.name.toLowerCase();
+    let filenameWarehouse=null;
+    if(fname.includes('豊海')||fname.includes('toyomi')||fname.includes('dsv')||fname.includes('funabashi')){
+      filenameWarehouse='DSV Funabashi';
+    } else if(fname.includes('sagawa')||fname.includes('hyutech')||fname.includes('在庫報告書')){
+      filenameWarehouse='Sagawa (Hyutech Noorin)';
+    } else if(fname.includes('silver')||fname.includes('シルバー')){
+      filenameWarehouse='Silver Family Warehouse';
+    }
+
+    // Detect month from filename
+    let filenameMonth=null;
+    const mMatch=file.name.match(/(\d{4})(\d{2})/);
+    if(mMatch){
+      const y=parseInt(mMatch[1]),m=parseInt(mMatch[2]);
+      if(y>=2020&&y<=2030&&m>=1&&m<=12) filenameMonth=`${y}-${String(m).padStart(2,'0')}`;
+    }
+
     if(ext==='pdf'){
       const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('read failed'));r.readAsDataURL(file)});
       extra=[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`[PDF: ${file.name}]`}];
     } else {
-      text=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'binary'});let t='';wb.SheetNames.forEach(n=>{t+=XLSX.utils.sheet_to_csv(wb.Sheets[n])});res(t)}catch(err){rej(err)}};r.onerror=()=>rej(new Error('read failed'));r.readAsBinaryString(file)});
+      // For Excel: extract raw values not CSV to preserve Japanese text better
+      text=await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=e=>{
+          try{
+            const wb=XLSX.read(e.target.result,{type:'binary',cellText:true,cellDates:true});
+            let t='';
+            wb.SheetNames.forEach(n=>{
+              const ws=wb.Sheets[n];
+              const range=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+              t+=`[Sheet: ${n}]\n`;
+              // Only read first 60 rows to keep token count reasonable
+              for(let row=range.s.r;row<=Math.min(range.e.r,60);row++){
+                const rowData=[];
+                for(let col=range.s.c;col<=Math.min(range.e.c,15);col++){
+                  const cell=ws[XLSX.utils.encode_cell({r:row,c:col})];
+                  rowData.push(cell?String(cell.v||''):'');
+                }
+                if(rowData.some(v=>v.trim()))t+=rowData.join('\t')+'\n';
+              }
+            });
+            res(t);
+          }catch(err){rej(err)}
+        };
+        r.onerror=()=>rej(new Error('read failed'));
+        r.readAsBinaryString(file);
+      });
     }
+
+    const warehouseHint=filenameWarehouse?`\nFilename suggests warehouse: ${filenameWarehouse} — use this unless content clearly says otherwise.`:'';
+    const monthHint=filenameMonth?`\nFilename suggests month: ${filenameMonth} — use this unless content clearly says otherwise.`:'';
 
     const raw=await _claude(`Warehouse inventory report for Nina Pita Japan (Dutch frozen pita brand).
 Known SKUs:\n${skuList}
 
-This is a monthly warehouse report. Extract:
-1. Which month does this cover? (YYYY-MM)
-2. Which warehouse is this from? (DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse — or detect from content)
-3. Per SKU data:
-   - opening: 前月在庫 = previous month stock = opening balance for this month
-   - inbound: 入庫数 = received this month
-   - reported_out: total of ALL 出庫数 columns = total shipped out per this report
-   - closing: 在庫数 = closing stock at end of month
+WAREHOUSE NAMES TO USE:
+- 豊海冷蔵 / Toyomi / DSV → "DSV Funabashi"
+- 佐川 / Sagawa / ヒューテックノオリン / Hyutech → "Sagawa (Hyutech Noorin)"
+- シルバー / Silver → "Silver Family Warehouse"
+${warehouseHint}${monthHint}
 
-Return ONLY JSON:
+COLUMN NAMES IN JAPANESE REPORTS:
+- 商品コード or ロット = SKU / lot
+- 品名 = product name
+- 前月在庫 = opening stock (previous month closing = this month opening)
+- 入庫数 = inbound received this month
+- 在庫数 = closing stock (current stock at end of month)
+- 出庫数 = outbound shipped (may appear many times as 出庫数1, 出庫数2... — sum them ALL)
+
+Extract per-SKU data. For each SKU found:
+- opening = 前月在庫 value
+- inbound = 入庫数 value
+- reported_out = SUM of ALL 出庫数 columns for that SKU
+- closing = 在庫数 value
+
+Return ONLY JSON — no explanation, no markdown:
 {
   "month": "YYYY-MM",
-  "warehouse": "warehouse name",
+  "warehouse": "one of the three warehouse names above",
   "skus": {
-    "J001": {"name":"Nina Large φ15cm 100g","opening":45,"inbound":0,"reported_out":30,"closing":15}
+    "J001": {"name":"Nina Large φ15cm 100g","opening":45,"inbound":0,"reported_out":30,"closing":15},
+    "J003": {"name":"Nina Oval 20x11cm 100g","opening":18,"inbound":0,"reported_out":5,"closing":13}
   }
 }
-Raw JSON only. ${text}`,extra);
+
+DATA:\n${text}`,extra);
 
     const result=_parseJSON(raw);
     if(!result.month||!result.warehouse)throw new Error('Could not identify month or warehouse.');
