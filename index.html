@@ -572,7 +572,8 @@ function _movementsForMonth(month){
 // Detect warehouses active in a month from movements
 function _warehousesInMonth(month){
   const whs=new Set();
-  _movementsForMonth(month).forEach(m=>{if(m.warehouse)whs.add(m.warehouse)});
+  // Only outbound movements indicate a warehouse needs a stock report
+  _movementsForMonth(month).forEach(m=>{if(m.warehouse&&m.type==='out')whs.add(m.warehouse)});
   return Array.from(whs);
 }
 
