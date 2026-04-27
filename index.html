@@ -1232,16 +1232,16 @@ function _splitWaByMonth(text){
 window.saveWaMovements = function(){
   if(!_waPendingMovements.length) return;
   const existing = DB.movements();
+  const existingSnapshot = existing.map(e=>e.date+'|'+e.sku+'|'+e.qty+'|'+(e.destination||''));
 
-  // Add all pending movements — deduplicate by date+sku+qty+destination
   let added = 0;
+  const newMovements = [];
   _waPendingMovements.forEach(m=>{
-    const isDupe = existing.some(e=>
-      e.date===m.date && e.sku===m.sku &&
-      e.qty===m.qty && e.source==='whatsapp'
-    );
+    // Only skip if exact match already exists in DB (not in current batch)
+    const key = m.date+'|'+m.sku+'|'+m.qty+'|'+(m.destination||'');
+    const isDupe = existingSnapshot.includes(key);
     if(!isDupe){
-      existing.push({
+      newMovements.push({
         id: Date.now()+Math.random(),
         date: m.date,
         sku: m.sku,
@@ -1256,7 +1256,7 @@ window.saveWaMovements = function(){
     }
   });
 
-  DB.set('movements', existing);
+  DB.set('movements', [...existing, ...newMovements]);
   window.closeWaModal();
   _render();
   alert(`Saved ${added} movements (${_waPendingMovements.length - added} duplicates skipped).`);
