@@ -338,6 +338,7 @@ body{
       <div class="hdr-sub" id="hdr-sub">Loading...</div>
     </div>
     <div class="hdr-right">
+      <button class="upload-btn secondary" onclick="window.showWaModal()">💬 Import WhatsApp</button>
       <button class="upload-btn secondary" onclick="window.showUploadModal()">+ Upload Report</button>
     </div>
   </div>
@@ -379,6 +380,38 @@ body{
     <div class="detail-body" id="detail-body"></div>
   </div>
 
+</div>
+
+<!-- WHATSAPP MODAL -->
+<div id="wa-modal" style="display:none;position:fixed;inset:0;background:rgba(26,22,18,0.5);z-index:500;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#fff;border-radius:var(--r);padding:28px;width:100%;max-width:520px;box-shadow:0 8px 32px rgba(26,22,18,0.2);max-height:80vh;overflow-y:auto">
+    <div style="font-size:16px;font-weight:400;margin-bottom:4px">Import WhatsApp Deliveries</div>
+    <div style="font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:20px">Upload WhatsApp export ZIP or paste messages directly</div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="wa-tab-zip" class="upload-btn" style="flex:1;justify-content:center" onclick="window.waTab('zip')">Upload ZIP</button>
+      <button id="wa-tab-paste" class="upload-btn secondary" style="flex:1;justify-content:center" onclick="window.waTab('paste')">Paste Text</button>
+    </div>
+    
+    <div id="wa-zip-area">
+      <div class="upload-inline" id="wa-drop" onclick="document.getElementById('wa-file-in').click()">
+        <div class="upload-inline-text">Drop WhatsApp export <span>.zip</span> here or click to browse</div>
+        <div id="wa-filename" style="margin-top:6px;font-size:11px;color:var(--gold);font-family:'DM Mono',monospace"></div>
+        <input type="file" id="wa-file-in" accept=".zip,.txt" style="display:none" />
+      </div>
+    </div>
+    
+    <div id="wa-paste-area" style="display:none">
+      <textarea id="wa-paste-text" style="width:100%;background:#fff;border:1px solid var(--paper);border-radius:var(--rs);padding:12px;font-family:'DM Mono',monospace;font-size:11px;min-height:140px;outline:none;resize:vertical;color:var(--ink)" placeholder="Paste WhatsApp messages here..."></textarea>
+    </div>
+    
+    <div class="loader" id="wa-loader" style="margin-top:12px"><div class="spin"></div><span id="wa-loader-txt">Claude is extracting movements...</span></div>
+    <div id="wa-preview" style="display:none;margin-top:14px"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="upload-btn" id="wa-save-btn" style="display:none" onclick="window.saveWaMovements()">Save All Movements</button>
+      <button class="upload-btn secondary" onclick="window.closeWaModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <!-- UPLOAD MODAL -->
@@ -949,6 +982,254 @@ async function _readExcelDirect(file){
     r.onerror=()=>res(null);
     r.readAsBinaryString(file);
   });
+}
+
+// ═══ WHATSAPP IMPORT ════════════════════════════════════
+let _waPendingMovements = [];
+
+window.showWaModal = function(){ document.getElementById('wa-modal').style.display='flex'; };
+window.closeWaModal = function(){ document.getElementById('wa-modal').style.display='none'; _waPendingMovements=[]; };
+window.waTab = function(tab){
+  document.getElementById('wa-zip-area').style.display = tab==='zip'?'block':'none';
+  document.getElementById('wa-paste-area').style.display = tab==='paste'?'block':'none';
+  document.getElementById('wa-tab-zip').className = tab==='zip'?'upload-btn':'upload-btn secondary';
+  document.getElementById('wa-tab-paste').className = tab==='paste'?'upload-btn':'upload-btn secondary';
+};
+
+// File input handlers
+const waFile = document.getElementById('wa-file-in');
+const waDrop = document.getElementById('wa-drop');
+waFile.addEventListener('change', e => _processWaFile(e.target.files[0]));
+waDrop.addEventListener('dragover', e=>{e.preventDefault();waDrop.classList.add('drag')});
+waDrop.addEventListener('dragleave', ()=>waDrop.classList.remove('drag'));
+waDrop.addEventListener('drop', e=>{e.preventDefault();waDrop.classList.remove('drag');_processWaFile(e.dataTransfer.files[0])});
+waDrop.addEventListener('click', ()=>waFile.click());
+
+// Also handle paste button
+document.getElementById('wa-paste-text').addEventListener('input', function(){
+  if(this.value.trim().length > 50) _processWaText(this.value);
+});
+
+async function _processWaFile(file){
+  if(!file) return;
+  document.getElementById('wa-filename').textContent = file.name;
+  let text = '';
+  // Handle ZIP or TXT
+  if(file.name.endsWith('.zip')){
+    // Read zip using JSZip or just read as binary and find txt content
+    text = await _readZipText(file);
+  } else {
+    text = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=e=>res(e.target.result);
+      r.onerror=()=>rej(new Error('read failed'));
+      r.readAsText(file,'utf-8');
+    });
+  }
+  if(text) _processWaText(text);
+}
+
+async function _readZipText(file){
+  // Read ZIP file and extract .txt content
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=async e=>{
+      try{
+        // Use XLSX ArrayBuffer approach to find text in zip
+        const data = new Uint8Array(e.target.result);
+        // Simple ZIP parser — find local file headers and extract txt files
+        let text = '';
+        let i = 0;
+        while(i < data.length - 4){
+          // Local file header signature: 0x04034b50
+          if(data[i]===0x50&&data[i+1]===0x4b&&data[i+2]===0x03&&data[i+3]===0x04){
+            const fnLen = data[i+26] | (data[i+27]<<8);
+            const extraLen = data[i+28] | (data[i+29]<<8);
+            const compSize = data[i+18] | (data[i+19]<<8) | (data[i+20]<<16) | (data[i+21]<<24);
+            const fnBytes = data.slice(i+30, i+30+fnLen);
+            const fname = new TextDecoder('utf-8').decode(fnBytes);
+            const dataStart = i+30+fnLen+extraLen;
+            if(fname.endsWith('.txt') && compSize > 0){
+              // Try uncompressed first (method 0), or use DecompressionStream
+              const method = data[i+8] | (data[i+9]<<8);
+              const compData = data.slice(dataStart, dataStart+compSize);
+              if(method===0){
+                text = new TextDecoder('utf-8','ignore').decode(compData);
+              } else if(method===8 && typeof DecompressionStream !== 'undefined'){
+                try{
+                  const ds = new DecompressionStream('deflate-raw');
+                  const writer = ds.writable.getWriter();
+                  const reader = ds.readable.getReader();
+                  writer.write(compData);
+                  writer.close();
+                  const chunks = [];
+                  let done = false;
+                  while(!done){
+                    const {value,done:d} = await reader.read();
+                    if(value) chunks.push(value);
+                    done = d;
+                  }
+                  const merged = new Uint8Array(chunks.reduce((s,c)=>s+c.length,0));
+                  let off=0;
+                  for(const c of chunks){merged.set(c,off);off+=c.length;}
+                  text = new TextDecoder('utf-8').decode(merged);
+                } catch(de){ console.warn('Decompress failed',de); }
+              }
+              if(text) break;
+            }
+            i = dataStart + compSize;
+          } else { i++; }
+        }
+        res(text || '');
+      } catch(err){ rej(err); }
+    };
+    r.onerror=()=>rej(new Error('ZIP read failed'));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+async function _processWaText(text){
+  if(!text.trim()) return;
+  document.getElementById('wa-loader').classList.add('on');
+  document.getElementById('wa-preview').style.display='none';
+  document.getElementById('wa-save-btn').style.display='none';
+  _waPendingMovements = [];
+
+  try{
+    const skuList = Object.entries(SKUS).map(([k,v])=>`${k}: ${v}`).join('\n');
+
+    // Split text into monthly chunks and process each
+    const monthChunks = _splitWaByMonth(text);
+    const loaderTxt = document.getElementById('wa-loader-txt');
+    const monthKeys = Object.keys(monthChunks).sort();
+    let allMovements = [];
+
+    for(let mi=0; mi<monthKeys.length; mi++){
+      const month = monthKeys[mi];
+      const chunk = monthChunks[month];
+      loaderTxt.textContent = `Processing ${mi+1}/${monthKeys.length}: ${month}...`;
+
+      const raw = await _claude(`Extract all stock deliveries from these WhatsApp messages for Nina Pita Japan.
+Month context: ${month}
+Known SKUs:\n${skuList}
+
+RULES:
+- Every message from Yui Muto about a customer/destination IS a delivery (outbound movement)
+- "from Sagawa" / "from Silver" = warehouse source
+- SKU sometimes missing J prefix: "007" = J007, "002" = J002
+- Expired items = still count as outbound
+- Sample/展示会 = destination "Sample"
+- Multi-SKU messages = separate movement per SKU
+- Non-delivery messages (greetings, questions) = skip
+
+Return ONLY JSON array:
+[{"date":"YYYY-MM-DD","sku":"J001","qty":1,"destination":"customer name","warehouse":"DSV Funabashi or Sagawa (Hyutech Noorin) or Silver Family Warehouse","expired":false}]
+
+Warehouse rules: "from Sagawa"→Sagawa, "from Silver"→Silver, default→DSV Funabashi
+Raw JSON array only.
+
+MESSAGES:
+${chunk}`);
+
+      const movs = _parseJSONArray(raw);
+      movs.forEach(m=>{ m.month=month; allMovements.push(m); });
+    }
+
+    _waPendingMovements = allMovements;
+
+    // Show preview grouped by month
+    const byMonth = {};
+    allMovements.forEach(m=>{ if(!byMonth[m.month])byMonth[m.month]=[];byMonth[m.month].push(m); });
+    const totalOut = allMovements.reduce((s,m)=>s+m.qty,0);
+
+    document.getElementById('wa-preview').innerHTML = `
+      <div style="background:var(--warm);border-radius:var(--rs);padding:14px 16px;margin-bottom:12px;font-size:12px;font-family:'DM Mono',monospace;line-height:2">
+        <div><span style="color:var(--ink3)">Total movements: </span><strong>${allMovements.length}</strong></div>
+        <div><span style="color:var(--ink3)">Total cases out: </span><strong>${totalOut}</strong></div>
+        <div><span style="color:var(--ink3)">Months covered: </span><strong>${Object.keys(byMonth).join(', ')}</strong></div>
+      </div>
+      ${Object.entries(byMonth).map(([month,movs])=>{
+        const cases = movs.reduce((s,m)=>s+m.qty,0);
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--paper);font-size:11px;font-family:'DM Mono',monospace">
+          <span style="color:var(--ink2);font-weight:500">${month}</span>
+          <span style="color:var(--ink3);margin-left:12px">${movs.length} movements · ${cases} cases</span>
+        </div>`;
+      }).join('')}`;
+    document.getElementById('wa-preview').style.display='block';
+    document.getElementById('wa-save-btn').style.display='inline-flex';
+
+  }catch(err){
+    document.getElementById('wa-preview').innerHTML=`<div style="color:var(--red);font-size:12px;font-family:'DM Mono',monospace">Error: ${err.message}</div>`;
+    document.getElementById('wa-preview').style.display='block';
+  }finally{
+    document.getElementById('wa-loader').classList.remove('on');
+    document.getElementById('wa-loader-txt').textContent='Claude is extracting movements...';
+  }
+}
+
+function _splitWaByMonth(text){
+  const chunks = {};
+  const lines = text.split('\n');
+  let currentMonth = null;
+  let currentLines = [];
+
+  for(const line of lines){
+    const m = line.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4}),/);
+    if(m){
+      const month = parseInt(m[1]);
+      let year = parseInt(m[3]);
+      if(year < 100) year += 2000;
+      const key = `${year}-${String(month).padStart(2,'0')}`;
+      if(key !== currentMonth){
+        if(currentMonth && currentLines.length) chunks[currentMonth] = currentLines.join('\n');
+        currentMonth = key;
+        currentLines = [line];
+      } else { currentLines.push(line); }
+    } else { if(currentLines.length) currentLines.push(line); }
+  }
+  if(currentMonth && currentLines.length) chunks[currentMonth] = currentLines.join('\n');
+  return chunks;
+}
+
+window.saveWaMovements = function(){
+  if(!_waPendingMovements.length) return;
+  const existing = DB.movements();
+
+  // Add all pending movements — deduplicate by date+sku+qty+destination
+  let added = 0;
+  _waPendingMovements.forEach(m=>{
+    const isDupe = existing.some(e=>
+      e.date===m.date && e.sku===m.sku &&
+      e.qty===m.qty && e.source==='whatsapp'
+    );
+    if(!isDupe){
+      existing.push({
+        id: Date.now()+Math.random(),
+        date: m.date,
+        sku: m.sku,
+        qty: m.qty,
+        type: 'out',
+        warehouse: m.warehouse||'DSV Funabashi',
+        destination: m.destination||'',
+        expired: m.expired||false,
+        source: 'whatsapp'
+      });
+      added++;
+    }
+  });
+
+  DB.set('movements', existing);
+  window.closeWaModal();
+  _render();
+  alert(`Saved ${added} movements (${_waPendingMovements.length - added} duplicates skipped).`);
+};
+
+function _parseJSONArray(raw){
+  try{
+    let s = raw.replace(/```json|```/g,'').trim();
+    if(!s.endsWith(']')){ const li=s.lastIndexOf('}'); if(li>0)s=s.substring(0,li+1)+']'; }
+    return JSON.parse(s);
+  }catch{ return []; }
 }
 
 // ═══ CLAUDE API ══════════════════════════════════════════
