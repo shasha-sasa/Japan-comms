@@ -572,11 +572,30 @@ async function _claude(prompt, extra=[]){
 }
 function _parseJSON(raw){
   let s=raw.replace(/```json|```/g,'').trim();
-  if(!s.endsWith(']')&&!s.endsWith('}')&&!s.endsWith('"')){
-    const li=Math.max(s.lastIndexOf('},'),s.lastIndexOf('"]'));
-    if(li>0)s=s.substring(0,li+1)+(s.trimStart().startsWith('[')? ']':'}');
+  // Remove any trailing incomplete content
+  if(!s.endsWith(']')&&!s.endsWith('}')){
+    // Try to find last complete object/array
+    const lastObj=s.lastIndexOf('},');
+    const lastArr=s.lastIndexOf(']');
+    const isArr=s.trimStart().startsWith('[');
+    if(isArr&&lastObj>0){s=s.substring(0,lastObj+1)+']';}
+    else if(!isArr){
+      // Find matching closing brace
+      let depth=0,lastGood=0;
+      for(let i=0;i<s.length;i++){if(s[i]==='{')depth++;else if(s[i]==='}'){depth--;if(depth===0)lastGood=i;}}
+      if(lastGood>0)s=s.substring(0,lastGood+1);
+    }
   }
-  return JSON.parse(s);
+  try{return JSON.parse(s);}
+  catch{
+    // Last resort: extract just the outer object keys we need
+    const fallback={category:'Unknown',title:'Parse error',english_summary:raw.substring(0,500),affects:[],action_now:'context_only',context_entry:'Document processed but response was malformed.',movements:[],snapshot_items:[],cost_items:[]};
+    const catMatch=raw.match(/"category"\s*:\s*"([^"]+)"/);
+    const titleMatch=raw.match(/"title"\s*:\s*"([^"]+)"/);
+    if(catMatch)fallback.category=catMatch[1];
+    if(titleMatch)fallback.title=titleMatch[1];
+    return fallback;
+  }
 }
 
 // ═══ INBOX ═══════════════════════════════════════════════
@@ -613,7 +632,6 @@ window.processInbox=async function(){
   document.getElementById('inbox-results').innerHTML='';
   try{
     const inputs=[];
-    // Read files
     for(const f of _files){
       const data=await _readFile(f);
       if(data.type==='pdf'){
@@ -627,67 +645,73 @@ window.processInbox=async function(){
     const skus=DB.skus();
     const skuList=Object.values(skus).map(s=>`${s.code}: ${s.name}`).join('\n')||'(no SKUs loaded yet)';
     const knownCats=_getKnownCategories();
-
     const results=[];
-    for(const inp of inputs){
-      const prompt=`You are the intelligence layer of Nina Pita Japan's operations platform.
-Nina Pita is a Dutch food brand importing frozen pita bread from Israel, operating in Japan through DSV, Sagawa, and Silver Family Warehouse.
+    const loaderTxt=document.querySelector('#inbox-loader .loader-txt');
 
-Known SKUs:
-${skuList}
+    // Process ONE AT A TIME — each input = one Claude call
+    for(let idx=0; idx<inputs.length; idx++){
+      const inp=inputs[idx];
+      loaderTxt.innerHTML=`<span>Claude</span> processing ${idx+1} of ${inputs.length}: ${inp.name}`;
 
-Known document categories: ${knownCats.join(', ')}
-You may create new categories if none fit.
+      const prompt=`You are the intelligence layer of Nina Pita Japan operations platform.
+Nina Pita imports frozen pita from Israel, operates in Japan via DSV Funabashi, Sagawa (Hyutech Noorin), Silver Family Warehouse.
 
-INPUT: "${inp.name}"
+Known SKUs: ${skuList}
+Known categories: ${knownCats.join(', ')} — create new if none fit.
 
-Analyze this input and return ONLY valid JSON (no markdown):
+INPUT NAME: "${inp.name}"
+
+Return ONLY a JSON object (no markdown, no explanation). Keep english_summary concise (max 200 words). Keep context_entry to 2-3 sentences.
+
 {
-  "category": "string — best category label (use known ones or create new)",
-  "is_new_category": boolean,
-  "title": "short descriptive title in English",
-  "english_summary": "clean English translation/summary of the full content — present it as-is, no explanations",
-  "affects": ["array of what this is relevant to from: Stock/Inventory, Movements, Costs/Finance, Compliance/Regulatory, Supplier/Manufacturer, Customer, Logistics, Legal/Contracts, Quality/Specs, Other"],
-  "action_now": "what the system should do today — e.g. create_movement, update_stock, add_cost, context_only",
-  "action_potential": "what this could feed into with future capabilities",
-  "extracted_data": {
-    "relevant fields only — e.g. for delivery: sku, qty, date, destination, carrier. For invoice: partner, amount_jpy, period. For inventory: warehouse, skus with quantities. Leave empty if context_only"
-  },
-  "context_entry": "2-3 sentence knowledge statement about what was learned — written as fact, present tense, for a business knowledge base",
-  "movements": [
-    {"type":"in or out","date":"YYYY-MM-DD","sku":"code","product_name":"name","qty":number,"destination":"string","carrier":"string","warehouse":"DSV Funabashi or Sagawa (Hyutech Noorin) or Silver Family Warehouse","expired":boolean,"reference":"string"}
-  ],
-  "snapshot_items": [
-    {"sku":"code","name":"product name","warehouse":"warehouse name","current_stock":number,"lot":"string","expiry":"string","broken":boolean}
-  ],
-  "cost_items": [
-    {"partner":"name","category":"warehouse/delivery/handling/storage/exhibition/other","amount_jpy":number,"period":"YYYY-MM","description":"string"}
-  ]
+  "category": "best label",
+  "is_new_category": false,
+  "title": "short English title",
+  "english_summary": "clean English version of content, concise",
+  "affects": ["Stock/Inventory","Movements","Costs/Finance","Compliance/Regulatory","Supplier/Manufacturer","Customer","Logistics","Legal/Contracts","Quality/Specs","Other"],
+  "action_now": "create_movement | update_stock | add_cost | context_only",
+  "action_potential": "brief note",
+  "extracted_data": {},
+  "context_entry": "2-3 sentence fact for knowledge base",
+  "movements": [{"type":"out","date":"YYYY-MM-DD","sku":"J001","product_name":"name","qty":1,"destination":"","carrier":"","warehouse":"DSV Funabashi","expired":false,"reference":""}],
+  "snapshot_items": [{"sku":"J001","name":"name","warehouse":"DSV Funabashi","current_stock":0,"lot":"","expiry":"","broken":false}],
+  "cost_items": [{"partner":"","category":"","amount_jpy":0,"period":"YYYY-MM","description":""}]
 }
 
 Rules:
-- movements array: only if this is a delivery/shipment document or text. Each SKU line = one movement.
-- snapshot_items: only if this is an inventory report
-- cost_items: only if this contains billing/invoice data
-- If input is WhatsApp messages, extract ALL delivery movements. Each message = one or more movements.
-- Always produce context_entry regardless of type
-- Dates in format YYYY-MM-DD
-- Return raw JSON only
+- movements: delivery/shipment docs only. Empty array [] otherwise.
+- snapshot_items: inventory reports only. Empty array [] otherwise.
+- cost_items: invoices/billing only. Empty array [] otherwise.
+- WhatsApp: extract ALL deliveries, one entry per SKU per message.
+- Return raw JSON only — no triple backticks.
 
 ${inp.text}`;
 
-      const raw=await _claude(prompt, inp.extra);
-      const result=_parseJSON(raw);
-      result._source=inp.name;
-      result._sourceType=inp.source;
-      results.push(result);
-    }
-    _renderInboxResults(results);
+      try{
+        const raw=await _claude(prompt, inp.extra);
+        const result=_parseJSON(raw);
+        result._source=inp.name;
+        result._sourceType=inp.source;
+        results.push(result);
+        // Show results as they come in — don't wait for all
+        _renderInboxResults(results);
+      }catch(itemErr){
+        // One document failed — show error card but continue with others
+        results.push({
+          _source:inp.name,_sourceType:inp.source,_error:itemErr.message,
+          category:'Error',title:`Failed: ${inp.name}`,english_summary:'',
+          affects:[],action_now:'context_only',context_entry:'',
+          movements:[],snapshot_items:[],cost_items:[]
+        });
+        _renderInboxResults(results);
+      }
+    }// end for loop
   }catch(err){
-    document.getElementById('inbox-results').innerHTML=`<div style="color:var(--red);font-size:12px;padding:12px;font-family:'IBM Plex Mono',monospace">Error: ${err.message}</div>`;
+    document.getElementById('inbox-results').innerHTML+=`<div style="color:var(--red);font-size:12px;padding:12px;font-family:'IBM Plex Mono',monospace">Fatal error: ${err.message}</div>`;
   }finally{
     btn.disabled=false;
     document.getElementById('inbox-loader').classList.remove('on');
+    document.querySelector('#inbox-loader .loader-txt').innerHTML='<span>Claude</span> is reading and classifying...';
   }
 };
 
